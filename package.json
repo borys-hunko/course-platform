@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npx tsc",
-    "dev": "npx nodemon ./src/index.ts",
+    "dev": "tsx watch --exclude \"./dist\" ./src/index.ts",
     "format": "npx prettier . --write",
     "lint": "npx eslint src/"
   },
@@ -19,9 +19,9 @@
     "@types/node": "^22.0.2",
     "eslint": "^9.9.0",
     "globals": "^15.9.0",
-    "nodemon": "^3.1.4",
     "prettier": "3.3.3",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.0.1"
   },
