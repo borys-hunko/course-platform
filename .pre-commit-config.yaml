@@ -1,0 +1,27 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+exclude: '^(node_modules/|dist/)'
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+      - id: check-merge-conflict
+      - id: detect-private-key
+  - repo: local
+    hooks:
+      - id: ts
+        name: ts
+        language: system
+        entry: bash -c "node -v; npm run typecheck"
+        types: [file]
+        files: \.ts$
+      - id: linter
+        name: linter
+        language: system
+        entry: npm run lint
+      - id: prettier-format
+        name: prettier format
+        language: system
+        entry: npm run format
+        stages: [pre-commit]
