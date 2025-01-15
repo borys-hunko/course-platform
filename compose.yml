@@ -1,0 +1,18 @@
+services:
+  app:
+    build:
+      target: dev
+      context: .
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    develop:
+      watch:
+        - action: sync
+          target: /app/src
+          path: ./src
+          ignore:
+            - node_modules
+            - dist
+        - action: rebuild
+          path: package.json
