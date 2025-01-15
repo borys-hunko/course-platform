@@ -26,7 +26,6 @@ EXPOSE 8000
 ENTRYPOINT [ "npm", "run", "dev" ]
 
 # for production
-
 FROM builder AS prod
 
 ARG PORT

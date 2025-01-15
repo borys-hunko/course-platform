@@ -1,6 +1,6 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
-exclude: '^(node_modules/|dist/)'
+exclude: '^(node_modules/|dist/|volumes/)'
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -20,8 +20,3 @@ repos:
         name: linter
         language: system
         entry: npm run lint
-      - id: prettier-format
-        name: prettier format
-        language: system
-        entry: npm run format
-        stages: [pre-commit]
