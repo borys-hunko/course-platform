@@ -1,5 +1,5 @@
 #base
-FROM node:20-alpine AS base
+FROM node:20-alpine3.21 AS builder
 
 RUN apk add --no-cache shadow
 
@@ -9,6 +9,8 @@ USER app
 WORKDIR /app
 
 COPY --chown=app:app package*.json ./public/* ./
+
+FROM builder AS base
 
 RUN npm i
 
@@ -25,16 +27,16 @@ ENTRYPOINT [ "npm", "run", "dev" ]
 
 # for production
 
-# FROM node:17.9.0-alpine3.15 AS prod
+FROM builder AS prod
 
-# WORKDIR /usr/src/app
+ARG PORT
 
-# COPY package*.json ./
+ENV NODE_ENV=production
 
-# RUN npm install --only=production
+RUN npm ci
 
-# COPY --from=builder /app/dist ./
+COPY --from=base /app/dist ./
 
-# EXPOSE 8000
+EXPOSE ${PORT}
 
-# ENTRYPOINT ["node","./index.js"]
+ENTRYPOINT ["node","./index.js"]
