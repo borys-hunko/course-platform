@@ -4,6 +4,7 @@ FROM node:20-alpine3.21 AS builder
 RUN apk add --no-cache shadow
 
 RUN useradd -ms /bin/sh -u 1001 app
+
 USER app
 
 WORKDIR /app

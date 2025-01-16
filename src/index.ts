@@ -1,6 +1,7 @@
 import express, { Request } from 'express';
 import { generateWords } from './words-generator';
 import { TestResopnse } from './types';
+import datasource from './datasource';
 
 const app = express();
 
@@ -22,6 +23,12 @@ app.get('/file-get', (req, res) => {
   });
 });
 
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`Example app listening on port ${port}`);
+  try {
+    await datasource.raw('select 1 + 1 as results');
+    console.log('database is runnning');
+  } catch (e) {
+    console.error('error occured', e);
+  }
 });
