@@ -2,7 +2,7 @@ services:
   app:
     build:
       target: dev
-      context: .
+      context: ./server
     restart: unless-stopped
     ports:
       - '8000:8000'
@@ -13,11 +13,12 @@ services:
     develop:
       watch:
         - action: sync
-          target: /app/src
-          path: ./src
+          target: /app
+          path: ./server
           ignore:
             - node_modules
             - dist
+            - volumes
         - action: rebuild
           path: package.json
 

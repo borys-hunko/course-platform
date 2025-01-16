@@ -1,6 +1,8 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
-exclude: '^(node_modules/|dist/|volumes/)'
+
+#exclude volumes and node_modules/dist in child directories
+exclude: '^(volumes|.*[\/\\](node_modules|dist)([\/\\]?.*)?)$'
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -10,13 +12,12 @@ repos:
       - id: detect-private-key
   - repo: local
     hooks:
-      - id: ts
-        name: ts
+      - id: server-ts
+        name: server ts typecheck
         language: system
-        entry: bash -c "node -v; npm run typecheck"
+        entry: bash -c "npm --prefix server run typecheck"
         types: [file]
-        files: \.ts$
-      - id: linter
-        name: linter
+      - id: server-linter
+        name: server linter
         language: system
-        entry: npm run lint
+        entry: bash -c "npm --prefix server run lint"

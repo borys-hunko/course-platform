@@ -1,4 +1,3 @@
-// Update with your config settings.
 const knexConfig = {
   development: {
     client: 'pg',
@@ -12,4 +11,4 @@ const knexConfig = {
   },
 };
 
-export default knexConfig as typeof knexConfig;
+export default knexConfig;
