@@ -9,7 +9,9 @@ USER app
 
 WORKDIR /app
 
-COPY --chown=app:app package*.json ./public/* ./
+COPY --chown=app:app package*.json ./
+COPY --chown=app:app ./public ./public
+
 
 FROM builder AS base
 
@@ -39,4 +41,4 @@ COPY --from=base /app/dist ./
 
 EXPOSE ${PORT}
 
-ENTRYPOINT ["node","./index.js"]
+ENTRYPOINT ["npm", "run", "prod"]
