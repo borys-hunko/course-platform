@@ -31,7 +31,7 @@ ENTRYPOINT [ "npm", "run", "dev" ]
 # for production
 FROM builder AS prod
 
-ARG PORT
+ARG PORT=8000
 
 ENV NODE_ENV=production
 
