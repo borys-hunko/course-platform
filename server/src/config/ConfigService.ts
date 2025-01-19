@@ -1,12 +1,14 @@
-import IConfigService, { Mapper } from './IConfigService';
+import { injectable } from 'inversify';
+import IConfigService from './IConfigService';
 
+@injectable()
 export default class ConfigServise implements IConfigService {
-  get<T = string>(key: string, mapper: Mapper<T> = (val) => val as T) {
+  async get(key: string) {
     const result = process.env[key];
     if (!result) {
       throw new Error();
     }
 
-    return mapper(result);
+    return result;
   }
 }

@@ -1,5 +1,5 @@
 export default interface IConfigService {
-  get: <T>(key: string, mapper: Mapper<T>) => T;
+  get: (key: string) => Promise<string>;
 }
 
-export type Mapper<T> = (val: string) => T;
+export const CONFIG_SERVICE = Symbol.for('CONFIG_SERVICE');
