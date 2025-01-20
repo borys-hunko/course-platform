@@ -1,4 +1,8 @@
-const knexConfig = {
+import { Knex } from 'knex';
+
+type Envs = 'development';
+
+const knexConfig: Record<Envs, Knex.Config> = {
   development: {
     client: 'pg',
     connection: {
@@ -8,6 +12,11 @@ const knexConfig = {
       password: 'password',
       database: 'courses_side',
     },
+    migrations: {
+      extension: 'ts',
+      tableName: 'migrations',
+    },
+    debug: true,
   },
 };
 
