@@ -1,8 +1,7 @@
-import knex from 'knex';
+import knex, { Knex } from 'knex';
 import knexConfig from '../knexfile';
 
 const datasource = knex(knexConfig.development);
 
-console.log('config', JSON.stringify(knexConfig.development.connection));
-
+export type Datasource = Knex<any, unknown[]>;
 export default datasource;

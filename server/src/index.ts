@@ -1,19 +1,9 @@
-import express from 'express';
-import datasource from './datasource';
 import * as dotenv from 'dotenv';
+import { Server } from './Server';
+import container from './common/inversify.config';
 
 dotenv.config();
 
-const app = express();
+const server = container.resolve(Server);
 
-const port = 8000;
-
-app.listen(port, async () => {
-  console.log(`Example app listening on port ${port}`);
-  try {
-    await datasource.raw('select 1 + 1 as results');
-    console.log('database is runnning');
-  } catch (e) {
-    console.error('error occured', e);
-  }
-});
+server.startServer();

@@ -3,5 +3,5 @@
 volumes
 */next-env.d.ts
 */build
-*/.env*
+*/.env
 */.next

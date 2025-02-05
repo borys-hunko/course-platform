@@ -10,6 +10,8 @@ services:
       - db
     networks:
       - local
+    env_file:
+      - ./server/.env
     develop:
       watch:
         - action: sync
