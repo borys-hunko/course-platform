@@ -10,7 +10,7 @@ USER app
 WORKDIR /app
 
 COPY --chown=app:app package*.json ./
-COPY --chown=app:app ./public ./public
+COPY --chown=app:app ./templates ./templates
 
 
 FROM builder AS base

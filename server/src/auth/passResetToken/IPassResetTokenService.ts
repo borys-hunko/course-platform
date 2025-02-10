@@ -1,4 +1,7 @@
-export interface IPassResetTokenService {
-  create(userEmail: string): Promise<string>;
-  validate(token: string): Promise<boolean>;
+import { ITransactional } from '../../common/transactionRunner';
+
+export interface IPassResetTokenService
+  extends ITransactional<IPassResetTokenService> {
+  createToken(userEmail: string): Promise<string>;
+  validateAndGetUser(token: string): Promise<{ usetId: number }>;
 }

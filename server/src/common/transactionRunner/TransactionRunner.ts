@@ -22,11 +22,15 @@ export class TransactionRunner<E> implements ITransactionRunner<any> {
 
     if (trx && propagate) {
       this.logger.info('propagate transaction');
+
       return await this.runTransaction<T>(transactionalFactory, trx, func);
     }
+
     this.logger.info('create new transaction');
     trx = await this.datasource.transaction();
+
     this.localStorage.set('transaction', trx);
+
     try {
       const result = await this.runTransaction<T>(
         transactionalFactory,
@@ -34,12 +38,13 @@ export class TransactionRunner<E> implements ITransactionRunner<any> {
         func,
       );
 
-      trx.commit();
       this.logger.info('commit transaction');
+      await trx.commit();
+
       return result;
     } catch (e: unknown) {
       this.logger.error('rollback transaction');
-      trx.rollback();
+      await trx.rollback();
 
       throw e;
     }
@@ -52,8 +57,9 @@ export class TransactionRunner<E> implements ITransactionRunner<any> {
   ) {
     const transactionalInstnce =
       transactionalFactory.createTransactionalInstance(trx);
+
     const result = await func(transactionalInstnce);
+
     return result;
   }
-  // private run
 }

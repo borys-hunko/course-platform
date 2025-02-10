@@ -4,6 +4,7 @@ import { inject, injectable, multiInject } from 'inversify';
 import IConfigService from './common/config/IConfigService';
 import { CONTAINER_IDS } from './common/consts';
 import { ILocalStorage } from './common/localStorage';
+import { IMailService } from './common/mail';
 import { FeatureRouter, Middleware } from './common/types';
 import { Datasource } from './datasource';
 import { localStorageMiddleware } from './middleware';
@@ -25,10 +26,11 @@ export class Server {
     private correlationIdMiddleware: Middleware,
     @inject(CONTAINER_IDS.LOCAL_STORAGE)
     private localStorage: ILocalStorage,
+    @inject(CONTAINER_IDS.MAIL_SERVICE) private mailService: IMailService,
   ) {}
 
   async startServer() {
-    this.setUpServer();
+    await this.setUpServer();
 
     const port = await this.configService.get('PORT');
 
@@ -38,14 +40,14 @@ export class Server {
     });
   }
 
-  private setUpServer() {
+  private async setUpServer() {
     this.setUpRoutes();
 
     this.app.use(localStorageMiddleware(this.localStorage));
     this.app.use(json());
     this.app.use(urlencoded({ extended: true }));
     this.app.use(this.correlationIdMiddleware.use);
-
+    await this.initServices();
     this.app.use(this.router);
     this.app.use(createErrorResponseHandler);
     this.app.use(errorHandler);
@@ -64,5 +66,9 @@ export class Server {
     } catch (e) {
       console.error('error occured', e);
     }
+  }
+
+  private async initServices() {
+    await this.mailService.init();
   }
 }

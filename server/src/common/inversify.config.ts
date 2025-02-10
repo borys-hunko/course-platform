@@ -1,6 +1,12 @@
+import * as awsSES from '@aws-sdk/client-ses';
+import { defaultProvider } from '@aws-sdk/credential-provider-node';
 import { AsyncLocalStorage } from 'async_hooks';
 import express, { Express, Router } from 'express';
-import { Container } from 'inversify';
+import { Container, interfaces } from 'inversify';
+import { Liquid } from 'liquidjs';
+import { createTransport, Transporter } from 'nodemailer';
+import SESTransport from 'nodemailer/lib/ses-transport';
+import path from 'path';
 import { AuthRouter } from '../auth/AuthRouter';
 import { AuthService } from '../auth/AuthService';
 import { IAuthService } from '../auth/IAuthService';
@@ -14,6 +20,8 @@ import {
   IPassResetTokenService,
   PassResetTokenService,
 } from '../auth/passResetToken';
+import { IPassResetTokenRepository } from '../auth/passResetToken/IPassResetTokenRepository';
+import { PassResetTokenRepository } from '../auth/passResetToken/PassResetTokenRepository';
 import datasource, { Datasource } from '../datasource';
 import { JwtAuthenticationMiddleaware } from '../middleware';
 import { CorrelationIdMiddleware } from '../middleware/correlationIdMiddleware';
@@ -32,6 +40,7 @@ import {
 } from './localStorage';
 import { ILocalStorageLogger, ILogger, Logger } from './logger';
 import { LocalStorageLogger } from './logger/LocalStorageLogger';
+import { IMailService, MailService } from './mail';
 import { ITransactionRunner, TransactionRunner } from './transactionRunner';
 import { FeatureRouter, Middleware } from './types';
 
@@ -68,6 +77,42 @@ container
   .to(LocalStorageLogger)
   .inSingletonScope();
 
+// mail
+const createMailTransporter: interfaces.ProviderCreator<
+  Transporter<SESTransport.SentMessageInfo>
+> = (context: interfaces.Context) => {
+  return async () => {
+    const configService = context.container.get<IConfigService>(
+      CONTAINER_IDS.CONFIG_SERVICE,
+    );
+    const ses = new awsSES.SES({
+      region: await configService.get('AWS_REGION'),
+      credentials: defaultProvider(),
+      apiVersion: '2010-12-01',
+    });
+
+    // console.log('domainEmail', domainEmail);
+    return createTransport({
+      SES: { aws: awsSES, ses },
+    });
+  };
+};
+container
+  .bind<
+    Transporter<SESTransport.SentMessageInfo>
+  >(CONTAINER_IDS.MAIL_TRANSPORTER)
+  .toProvider<Transporter<SESTransport.SentMessageInfo>>(createMailTransporter);
+container.bind<Liquid>(CONTAINER_IDS.TEMPLATE_ENGINE).toConstantValue(
+  new Liquid({
+    root: path.resolve(__dirname, '../..', 'templates'),
+    extname: '.liquid',
+  }),
+);
+container
+  .bind<IMailService>(CONTAINER_IDS.MAIL_SERVICE)
+  .to(MailService)
+  .inSingletonScope();
+
 //middlewares
 container
   .bind<Middleware>(CONTAINER_IDS.JWT_AUTH_MIDDLEWARE)
@@ -100,6 +145,10 @@ container
 container
   .bind<IPassResetTokenService>(CONTAINER_IDS.PASS_RESET_TOKEN_SERVICE)
   .to(PassResetTokenService)
+  .inSingletonScope();
+container
+  .bind<IPassResetTokenRepository>(CONTAINER_IDS.PASS_RESET_TOKEN_REPOSITORY)
+  .to(PassResetTokenRepository)
   .inSingletonScope();
 container
   .bind<IRefreshTokenRepository>(CONTAINER_IDS.REFRESH_TOKEN_REPOSITORY)

@@ -1,8 +1,12 @@
 import { compare } from 'bcrypt';
 import { inject, injectable } from 'inversify';
+import IConfigService from '../common/config/IConfigService';
 import { CONTAINER_IDS } from '../common/consts';
 import { ILocalStorage } from '../common/localStorage';
-import { ITransactionRunner, Transaction } from '../common/transactionRunner';
+import { ILogger } from '../common/logger';
+import { IMailService } from '../common/mail';
+import { Transaction } from '../common/transactionRunner';
+import { hashString } from '../common/utils';
 import { authenticationError } from '../common/utils/error';
 import IUserService from '../user/IUserService';
 import {
@@ -24,17 +28,20 @@ export class AuthService implements IAuthService {
     private passResetTokenService: IPassResetTokenService,
     @inject(CONTAINER_IDS.JWT_SERVICE) private jwtService: IJwtService,
     @inject(CONTAINER_IDS.LOCAL_STORAGE) private localStorage: ILocalStorage,
-    @inject(CONTAINER_IDS.TRANSACTION_RUNNER)
-    private transactionRunner: ITransactionRunner<AuthService>,
+    @inject(CONTAINER_IDS.MAIL_SERVICE) private mailService: IMailService,
+    @inject(CONTAINER_IDS.CONFIG_SERVICE) private configService: IConfigService,
+    @inject(CONTAINER_IDS.LOGGER) private logger: ILogger,
   ) {}
 
-  createTransactionalInstance(tsx: Transaction): AuthService {
+  createTransactionalInstance(trx: Transaction): AuthService {
     return new AuthService(
-      this.userService.createTransactionalInstance(tsx),
-      this.passResetTokenService,
-      this.jwtService.createTransactionalInstance(tsx),
+      this.userService.createTransactionalInstance(trx),
+      this.passResetTokenService.createTransactionalInstance(trx),
+      this.jwtService.createTransactionalInstance(trx),
       this.localStorage,
-      this.transactionRunner,
+      this.mailService,
+      this.configService,
+      this.logger,
     );
   }
 
@@ -62,22 +69,47 @@ export class AuthService implements IAuthService {
   }
 
   async signUp(signUpRequest: SignUpRequest): Promise<LogInResponse> {
-    return this.transactionRunner.runInsideTransaction(
-      this,
-      async (service) => {
-        const createdUser = await service.userService.create(signUpRequest);
-        return service.jwtService.getTokens(createdUser.id);
+    const createdUser = await this.userService.create(signUpRequest);
+    return this.jwtService.getTokens(createdUser.id);
+  }
+
+  async resetPassword({
+    newPassword,
+    resetToken,
+  }: ResetPasswordRequest): Promise<void> {
+    const validationResult =
+      await this.passResetTokenService.validateAndGetUser(resetToken);
+
+    const hashedPassword = await hashString(newPassword);
+
+    await this.userService.update(validationResult.usetId, {
+      password: hashedPassword,
+    });
+  }
+
+  async sendResetToken({
+    email,
+  }: SendForgotPasswordTokenRequest): Promise<void> {
+    const token = await this.passResetTokenService.createToken(email);
+    await this.sendPassResetEmail(email, token);
+  }
+
+  private async sendPassResetEmail(email: string, token: string) {
+    const resetLink = await this.createResetLink(token);
+    this.logger.debug('sendPassResetEmail', { email });
+    await this.mailService.sendEmail({
+      receiverEmail: email,
+      template: 'forgotPassword',
+      subject: 'Password reset',
+      temaplteVars: {
+        resetLink,
       },
-    );
+    });
   }
 
-  resetPassword(_resetPasswordRequest: ResetPasswordRequest): Promise<void> {
-    throw new Error('Method not implemented.');
-  }
-
-  sendResetToken(
-    _sendForgotPassTokenRequest: SendForgotPasswordTokenRequest,
-  ): Promise<void> {
-    throw new Error('Method not implemented.');
+  private async createResetLink(token: string) {
+    const clientUrl = await this.configService.get('CLIENT_URL');
+    const resetLink = `${clientUrl}/forgot-password?token=${token}`;
+    return resetLink;
   }
 }

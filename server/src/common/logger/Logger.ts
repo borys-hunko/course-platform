@@ -12,23 +12,27 @@ export class Logger implements ILogger {
   ) {}
 
   info(message: string, data?: KeyValue): void {
-    console.info(this.createLogMessage(message, data));
+    console.info(this.createLogMessage('INFO', message, data));
   }
 
   warn(message: string, data?: KeyValue): void {
-    console.warn(this.createLogMessage(message, data));
+    console.warn(this.createLogMessage('WARN', message, data));
   }
 
   error(message: string, data?: KeyValue): void {
-    console.error(this.createLogMessage(message, data));
+    console.error(this.createLogMessage('ERROR', message, data));
   }
 
   debug(message: string, data?: KeyValue): void {
-    console.debug(this.createLogMessage(message, data));
+    console.debug(this.createLogMessage('DEBUG', message, data));
   }
 
-  private createLogMessage = (message: string, data?: KeyValue) => {
-    const logMsg: KeyValue = { message };
+  private createLogMessage = (
+    logLevel: 'INFO' | 'ERROR' | 'DEBUG' | 'WARN',
+    message: string,
+    data?: KeyValue,
+  ) => {
+    const logMsg: KeyValue = { logLevel, message };
     const correlationId = this.localStorage.get('correlationId');
     logMsg.data = data;
     if (!logMsg.data) {

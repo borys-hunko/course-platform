@@ -55,18 +55,12 @@ export class LocalStorage implements ILocalStorage {
   ): void {
     const store = this.storage.getStore();
     if (store) {
-      this.logger.debug('store', 'LocalStorage', { store });
-
       store[key] = value;
-      this.logger.debug('value is set', 'LocalStorage', {
-        store: this.storage.getStore(),
-      });
     }
   }
 
   init(callback: () => void): void {
     this.storage.run({}, () => {
-      this.logger.debug('callback run', 'LocalStorage');
       callback();
     });
   }

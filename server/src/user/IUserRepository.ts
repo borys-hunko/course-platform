@@ -10,6 +10,7 @@ export interface IUserResitoryBase {
     user: Partial<Omit<User, 'id'>>,
   ): Promise<UserResponse | undefined>;
   create(user: Omit<User, 'createDate' | 'id'>): Promise<User>;
+  getByEmail(email: string): Promise<User | undefined>;
 }
 
 export type IUserResitory = IUserResitoryBase & ITransactional<IUserResitory>;

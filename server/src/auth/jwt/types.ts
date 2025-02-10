@@ -6,6 +6,7 @@ export interface TokensResponse {
 export interface RefreshToken {
   id: number;
   token: string;
+  tokenId: string;
   expirationDate: Date;
   userId: number;
   isActive: boolean;
@@ -14,6 +15,7 @@ export interface RefreshToken {
 export interface RefreshTokenTable {
   id: number;
   token: string;
+  tokenId: string;
   expirationDate: Date;
   userId: number;
   isActive: boolean;

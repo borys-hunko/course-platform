@@ -8,4 +8,5 @@ export default interface IUserService extends ITransactional<IUserService> {
   update(id: number, user: Partial<Omit<User, 'id'>>): Promise<UserResponse>; // TODO: change input type
   create(user: SignUpRequest): Promise<User>;
   getMe(): Promise<UserResponse>;
+  getByEmail(email: string): Promise<UserResponse>;
 }

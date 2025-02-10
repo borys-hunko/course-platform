@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify';
 import { CONTAINER_IDS } from '../../common/consts';
 import { Transaction } from '../../common/transactionRunner';
 import { Datasource } from '../../datasource';
-import { IRefreshTokenRepository } from './IRegreshTokenRepository';
+import { IRefreshTokenRepository } from './IRefreshTokenRepository';
 import { RefreshToken, RefreshTokenTable } from './types';
 
 @injectable()
@@ -30,21 +30,21 @@ export class RefreshTokenRepository implements IRefreshTokenRepository {
     return updatedRows != 0;
   }
 
-  async deactivate(token: string): Promise<boolean> {
+  async deactivate(tokenId: string): Promise<boolean> {
     const updatedRows = await this.datasource<RefreshTokenTable>('refreshToken')
       .update({
         isActive: false,
       })
-      .where({ token });
+      .where({ tokenId });
     return updatedRows != 0;
   }
 
-  async get(token: string): Promise<RefreshToken> {
+  async get(tokenId: string): Promise<RefreshToken> {
     const refreshToken = await this.datasource<RefreshTokenTable>(
       'refreshToken',
     )
       .select('*')
-      .where({ token });
+      .where({ tokenId });
 
     return refreshToken[0];
   }

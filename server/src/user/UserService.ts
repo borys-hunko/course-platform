@@ -1,9 +1,9 @@
-import { hash } from 'bcrypt';
 import { inject, injectable } from 'inversify';
 import { SignUpRequest } from '../auth/dto';
 import { CONTAINER_IDS } from '../common/consts';
 import { ILocalStorage } from '../common/localStorage';
 import { Transaction } from '../common/transactionRunner';
+import { hashString } from '../common/utils';
 import { badRequestError, notFoundError } from '../common/utils/error';
 import { UserResponse } from './dto';
 import { IUserResitory } from './IUserRepository';
@@ -71,9 +71,17 @@ export class UserService implements IUserService {
       throw badRequestError('User already exists');
     }
 
-    user.password = await hash(user.password, 10);
+    user.password = await hashString(user.password);
     const createUser = await this.userRepository.create(user);
 
     return createUser;
+  }
+
+  async getByEmail(email: string): Promise<UserResponse> {
+    const res = await this.userRepository.getByEmail(email);
+    if (!res) {
+      throw notFoundError(`User with email ${email} not found`);
+    }
+    return res;
   }
 }
