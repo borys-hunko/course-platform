@@ -1,3 +1,4 @@
+import { HttpError } from 'http-errors';
 import { ITransactional } from '../common/transactionRunner';
 import {
   LogInRequest,
@@ -15,5 +16,5 @@ export interface IAuthService extends ITransactional<IAuthService> {
     sendForgotPassTokenRequest: SendForgotPasswordTokenRequest,
   ): Promise<void>;
   refreshJwt(refreshToken: string): Promise<LogInResponse>;
-  authenticateJwt(jwt: string): Promise<void>;
+  authenticateJwt(jwt: string): Promise<void | HttpError>;
 }

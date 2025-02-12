@@ -1,12 +1,22 @@
 //@ts-check
 
-import globals from 'globals';
 import pluginJs from '@eslint/js';
-import tseslint from 'typescript-eslint';
 import prettierPlugin from 'eslint-plugin-prettier/recommended';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 export default [
   { files: ['**/*.{js,mjs,cjs,ts}'] },
+  {
+    languageOptions: {
+      parser: '@typescript-eslint/parser',
+      parserOptions: {
+        project: './tsconfig.json',
+        ecmaVersion: 2019,
+        sourceType: 'module',
+      },
+    },
+  },
   { languageOptions: { globals: globals.node } },
   pluginJs.configs.recommended,
   prettierPlugin,
@@ -23,6 +33,7 @@ export default [
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+      '@typescript-eslint/no-floating-promises': ['error'],
     },
   },
 ];

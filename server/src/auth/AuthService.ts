@@ -1,4 +1,5 @@
 import { compare } from 'bcrypt';
+import { HttpError } from 'http-errors';
 import { inject, injectable } from 'inversify';
 import IConfigService from '../common/config/IConfigService';
 import { CONTAINER_IDS } from '../common/consts';
@@ -45,9 +46,16 @@ export class AuthService implements IAuthService {
     );
   }
 
-  async authenticateJwt(token: string): Promise<void> {
-    const payload = await this.jwtService.checkJwt(token);
-    this.localStorage.set('userId', payload.id);
+  async authenticateJwt(token: string): Promise<void | HttpError> {
+    try {
+      const payload = await this.jwtService.checkJwt(token);
+      this.localStorage.set('userId', payload.id);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return error;
+      }
+      throw error;
+    }
   }
 
   refreshJwt(refreshToken: string): Promise<LogInResponse> {

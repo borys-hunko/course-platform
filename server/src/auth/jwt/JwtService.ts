@@ -11,6 +11,7 @@ import {
 } from '.';
 import IConfigService from '../../common/config/IConfigService';
 import { AUTH_SCHEME, CONTAINER_IDS } from '../../common/consts';
+import { ILogger } from '../../common/logger';
 import { Transaction } from '../../common/transactionRunner';
 import {
   authenticationError,
@@ -30,20 +31,19 @@ export class JwtService implements IJwtService {
     @inject(CONTAINER_IDS.REFRESH_TOKEN_REPOSITORY)
     private refreshTokenRepository: IRefreshTokenRepository,
     @inject(CONTAINER_IDS.CONFIG_SERVICE) private configService: IConfigService,
+    @inject(CONTAINER_IDS.LOGGER) private logger: ILogger,
   ) {}
 
   createTransactionalInstance(tsx: Transaction): JwtService {
     return new JwtService(
       this.refreshTokenRepository.createTransactionalInstance(tsx),
       this.configService,
+      this.logger,
     );
   }
 
   async checkJwt(token: string): Promise<JwtPayload> {
-    const tokenPrefix = AUTH_SCHEME + ' ';
-    await this.checkJwtFormat(token, tokenPrefix);
-
-    const payload: jwt.JwtPayload = this.verifyJwt(token);
+    const payload: jwt.JwtPayload = await this.verifyJwt(token);
     return { id: payload['id'] };
   }
 
@@ -94,31 +94,23 @@ export class JwtService implements IJwtService {
 
   private async verifyJwt(token: string) {
     try {
-      const jwtToken = token.split(' ')[1];
-
       const secret = await this.getSecret();
 
-      const payload = jwt.verify(jwtToken, secret);
+      const payload = jwt.verify(token, secret);
       if (typeof payload === 'string' || typeof payload.id !== 'number') {
         throw new JsonWebTokenError('Invalid payload');
       }
       return payload;
     } catch (error: unknown) {
-      if (error instanceof JsonWebTokenError) {
-        const errorMessage = capitalize(error.message);
-        throw authenticationError(errorMessage, {
-          authScheme: AUTH_SCHEME,
-          resource: await this.getAppName(),
-          error: 'Invalid jwt',
-        });
-      }
+      await this.handleJwtError(error);
       throw error;
     }
   }
 
-  private async checkJwtFormat(token: string, tokenPrefix: string) {
-    if (!token.startsWith(tokenPrefix)) {
-      throw authenticationError('Invalid token format', {
+  private async handleJwtError(error: unknown) {
+    if (error instanceof JsonWebTokenError) {
+      const errorMessage = capitalize(error.message);
+      throw authenticationError(errorMessage, {
         authScheme: AUTH_SCHEME,
         resource: await this.getAppName(),
         error: 'Invalid jwt',

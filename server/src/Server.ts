@@ -1,4 +1,5 @@
 import { json, urlencoded } from 'body-parser';
+import cookieParser from 'cookie-parser';
 import { Express, Router } from 'express';
 import { inject, injectable, multiInject } from 'inversify';
 import IConfigService from './common/config/IConfigService';
@@ -12,7 +13,6 @@ import {
   createErrorResponseHandler,
   errorHandler,
 } from './middleware/errorHandlerMiddleware';
-
 @injectable()
 export class Server {
   constructor(
@@ -46,6 +46,7 @@ export class Server {
     this.app.use(localStorageMiddleware(this.localStorage));
     this.app.use(json());
     this.app.use(urlencoded({ extended: true }));
+    this.app.use(cookieParser());
     this.app.use(this.correlationIdMiddleware.use);
     await this.initServices();
     this.app.use(this.router);

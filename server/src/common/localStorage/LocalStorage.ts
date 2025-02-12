@@ -19,15 +19,12 @@ export class LocalStorage implements ILocalStorage {
 
   get<Key extends keyof LocalStorageValues>(key: Key): LocalStorageValues[Key] {
     const store = this.storage.getStore();
-    this.logger.debug('localstorage.get(store)', 'LocalStorage', { store });
     if (!store) {
       throw new Error('Store is not defined');
     }
 
     const value = store[key];
-    this.logger.debug('localstorage.get(returned value)', 'LocalStorage', {
-      value,
-    });
+
     return value;
   }
 
@@ -35,13 +32,6 @@ export class LocalStorage implements ILocalStorage {
     key: Key,
   ): NonNullable<LocalStorageValues[Key]> {
     const value = this.get(key);
-    this.logger.debug(
-      'localstorage.getOrThrow(returned value)',
-      'LocalStorage',
-      {
-        value,
-      },
-    );
     if (!value) {
       throw new Error('Values is not defined');
     }

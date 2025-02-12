@@ -8,7 +8,6 @@ import { FeatureRouter } from '../common/types';
 import { schemaValidator } from '../middleware/validationMiddleware';
 import {
   LogInRequest,
-  LogInResponse,
   RefreshTokenRequest,
   ResetPasswordRequest,
   SendForgotPasswordTokenRequest,
@@ -22,6 +21,7 @@ import {
   sendPassResetTokenSchema,
   signUpSchema,
 } from './schemas';
+import { setAuthCookies } from './utils';
 
 @injectable()
 export class AuthRouter implements FeatureRouter {
@@ -67,37 +67,41 @@ export class AuthRouter implements FeatureRouter {
     return '/auth';
   }
 
-  loginRequestHandler: RequestHandler<any, LogInResponse, LogInRequest> =
-    async (req, res, next) => {
-      const response = await this.authService.login(req.body);
-      res.status(200).send(response);
-      next();
-    };
+  loginRequestHandler: RequestHandler<any, void, LogInRequest> = async (
+    req,
+    res,
+    next,
+  ) => {
+    const response = await this.authService.login(req.body);
+    setAuthCookies(res, response);
+    res.status(200).send();
+    next();
+  };
 
-  signUpRequestHandler: RequestHandler<any, LogInResponse, SignUpRequest> =
+  signUpRequestHandler: RequestHandler<any, void, SignUpRequest> = async (
+    req,
+    res,
+    next,
+  ) => {
+    const response = await this.transactionRunnner.runInsideTransaction(
+      this.authService,
+      (service) => service.signUp(req.body),
+    );
+    setAuthCookies(res, response);
+    res.status(201).send();
+    next();
+  };
+
+  refreshTokenRequestHandler: RequestHandler<any, void, RefreshTokenRequest> =
     async (req, res, next) => {
       const response = await this.transactionRunnner.runInsideTransaction(
         this.authService,
-        (service) => service.signUp(req.body),
+        (service) => service.refreshJwt(req.body.refreshToken),
       );
-
-      res.status(201).send(response);
+      setAuthCookies(res, response);
+      res.status(200).send();
       next();
     };
-
-  refreshTokenRequestHandler: RequestHandler<
-    any,
-    LogInResponse,
-    RefreshTokenRequest
-  > = async (req, res, next) => {
-    const response = await this.transactionRunnner.runInsideTransaction(
-      this.authService,
-      (service) => service.refreshJwt(req.body.refreshToken),
-    );
-
-    res.status(200).send(response);
-    next();
-  };
 
   sendResetPasswordLink: RequestHandler<
     any,
