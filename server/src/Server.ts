@@ -1,12 +1,13 @@
 import { json, urlencoded } from 'body-parser';
 import cookieParser from 'cookie-parser';
-import { Express, Router } from 'express';
+import { Express, NextFunction, Request, Response, Router } from 'express';
 import { inject, injectable, multiInject } from 'inversify';
 import IConfigService from './common/config/IConfigService';
 import { CONTAINER_IDS } from './common/consts';
 import { ILocalStorage } from './common/localStorage';
 import { IMailService } from './common/mail';
 import { FeatureRouter, Middleware } from './common/types';
+import { notFoundError } from './common/utils';
 import { Datasource } from './datasource';
 import { localStorageMiddleware } from './middleware';
 import {
@@ -52,8 +53,13 @@ export class Server {
     this.app.use(this.router);
     this.app.use(createErrorResponseHandler);
     this.app.use(errorHandler);
+    this.app.use(this.handle404);
   }
 
+  private async handle404(req: Request, res: Response, next: NextFunction) {
+    const error = notFoundError(`route ${req.originalUrl} does not exists`);
+    await errorHandler(error, req, res, next);
+  }
   private setUpRoutes() {
     this.featureRouters.forEach((feature) =>
       this.router.use(feature.getRouterPath(), feature.getRouter()),

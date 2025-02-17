@@ -1,7 +1,7 @@
 import { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
 import createHttpError, { HttpError } from 'http-errors';
 
-export const createErrorResponseHandler: ErrorRequestHandler = async (
+export const createErrorResponseHandler: ErrorRequestHandler = (
   err: any,
   _req: Request,
   _res: Response,
@@ -24,7 +24,7 @@ export const createErrorResponseHandler: ErrorRequestHandler = async (
   next(httpError);
 };
 
-export const errorHandler: ErrorRequestHandler = async (
+export const errorHandler: ErrorRequestHandler = (
   err: HttpError,
   _req: Request,
   res: Response,
