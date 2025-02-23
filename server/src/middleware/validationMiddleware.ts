@@ -7,10 +7,11 @@ export const schemaValidator = (schemas: {
   header?: z.AnyZodObject;
   query?: z.AnyZodObject;
   params?: z.AnyZodObject;
+  cookies?: z.AnyZodObject;
 }) => {
   return (req: Request, _: Response, next: NextFunction) => {
     try {
-      const { body, header, query, params } = schemas;
+      const { body, header, query, params, cookies } = schemas;
       if (body) {
         body.parse(req.body);
       }
@@ -22,6 +23,9 @@ export const schemaValidator = (schemas: {
       }
       if (params) {
         params.parse(req.params);
+      }
+      if (cookies) {
+        cookies.parse(req.cookies);
       }
       next();
     } catch (error) {

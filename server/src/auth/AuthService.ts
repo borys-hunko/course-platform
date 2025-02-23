@@ -7,8 +7,8 @@ import { ILocalStorage } from '../common/localStorage';
 import { ILogger } from '../common/logger';
 import { IMailService } from '../common/mail';
 import { Transaction } from '../common/transactionRunner';
-import { hashString } from '../common/utils';
-import { authenticationError } from '../common/utils/error';
+import { hashString, parseToken } from '../common/utils';
+import { authenticationError } from '../common/utils';
 import IUserService from '../user/IUserService';
 import {
   LogInRequest,
@@ -90,7 +90,7 @@ export class AuthService implements IAuthService {
 
     const hashedPassword = await hashString(newPassword);
 
-    await this.userService.update(validationResult.usetId, {
+    await this.userService.update(validationResult.userId, {
       password: hashedPassword,
     });
   }
@@ -102,6 +102,19 @@ export class AuthService implements IAuthService {
     await this.sendPassResetEmail(email, token);
   }
 
+  async logout(refreshToken: string): Promise<void> {
+    const { tokenId } = parseToken(
+      refreshToken,
+      authenticationError('invalid token'),
+    );
+    await this.passResetTokenService.deactivate(tokenId);
+  }
+
+  async logoutOfAllDevices(): Promise<void> {
+    const userId = this.localStorage.getOrThrow('userId');
+    await this.passResetTokenService.deactivateAll(userId);
+  }
+
   private async sendPassResetEmail(email: string, token: string) {
     const resetLink = await this.createResetLink(token);
     this.logger.debug('sendPassResetEmail', { email });
@@ -109,7 +122,7 @@ export class AuthService implements IAuthService {
       receiverEmail: email,
       template: 'forgotPassword',
       subject: 'Password reset',
-      temaplteVars: {
+      templateVars: {
         resetLink,
       },
     });

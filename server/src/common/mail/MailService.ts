@@ -26,7 +26,7 @@ export class MailService implements IMailService {
   }
 
   async sendEmail({
-    temaplteVars,
+    templateVars,
     template,
     receiverEmail,
     subject,
@@ -39,7 +39,7 @@ export class MailService implements IMailService {
     this.logger.debug('sendEmail-from', { domainEmail });
     const res = await this.transporter.sendMail({
       to: receiverEmail,
-      html: await this.engine.renderFile(template, temaplteVars),
+      html: await this.engine.renderFile(template, templateVars),
       subject,
       from: domainEmail,
     });

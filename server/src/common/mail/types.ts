@@ -6,7 +6,7 @@ export interface IMailService {
 export interface EmailOption {
   receiverEmail: string;
   template: string;
-  temaplteVars: {
+  templateVars: {
     [key: string]: string;
   };
   subject: string;

@@ -8,4 +8,5 @@ export interface IPassResetTokenRepository
   ): Promise<PassResetTokenTable>;
   deactivate(tokenId: string): Promise<boolean>;
   get(token: string): Promise<PassResetTokenTable | undefined>;
+  deactivateAll(userId: number): Promise<boolean>;
 }

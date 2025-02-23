@@ -9,10 +9,10 @@ import { Middleware } from '../common/types';
 import { authenticationError } from '../common/utils';
 
 @injectable()
-export class JwtAuthenticationMiddleaware implements Middleware {
+export class JwtAuthenticationMiddleware implements Middleware {
   constructor(
     @inject(CONTAINER_IDS.AUTH_SERVICE) private authService: IAuthService,
-    @inject(CONTAINER_IDS.CONFIG_SERVICE) private configServie: IConfigService,
+    @inject(CONTAINER_IDS.CONFIG_SERVICE) private configService: IConfigService,
     @inject(CONTAINER_IDS.LOGGER) private logger: ILogger,
   ) {}
 
@@ -21,7 +21,7 @@ export class JwtAuthenticationMiddleaware implements Middleware {
     if (typeof authToken !== 'string') {
       throw authenticationError('Token was not provided', {
         authScheme: AUTH_SCHEME,
-        resource: await this.configServie.get('APP_NAME'),
+        resource: await this.configService.get('APP_NAME'),
       });
     }
 

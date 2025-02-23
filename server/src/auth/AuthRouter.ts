@@ -1,11 +1,11 @@
 import { RequestHandler, Router } from 'express';
 import createHttpError from 'http-errors';
 import { inject, injectable } from 'inversify';
-import { CONTAINER_IDS } from '../common/consts';
+import { CONTAINER_IDS, COOKIES } from '../common/consts';
 import { ILogger } from '../common/logger';
 import { ITransactionRunner } from '../common/transactionRunner';
-import { FeatureRouter } from '../common/types';
-import { schemaValidator } from '../middleware/validationMiddleware';
+import { FeatureRouter, Middleware } from '../common/types';
+import { schemaValidator } from '../middleware';
 import {
   LogInRequest,
   RefreshTokenRequest,
@@ -16,6 +16,8 @@ import {
 import { IAuthService } from './IAuthService';
 import {
   logInSchema,
+  logoutAllSchema,
+  logoutSchema,
   refreshTokenSchema,
   resetPasswordSchema,
   sendPassResetTokenSchema,
@@ -29,8 +31,10 @@ export class AuthRouter implements FeatureRouter {
     @inject(CONTAINER_IDS.ROUTER) private router: Router,
     @inject(CONTAINER_IDS.AUTH_SERVICE) private authService: IAuthService,
     @inject(CONTAINER_IDS.TRANSACTION_RUNNER)
-    private transactionRunnner: ITransactionRunner<IAuthService>,
+    private transactionRunner: ITransactionRunner<IAuthService>,
     @inject(CONTAINER_IDS.LOGGER) private logger: ILogger,
+    @inject(CONTAINER_IDS.JWT_AUTH_MIDDLEWARE)
+    private jwtAuthMiddleware: Middleware,
   ) {}
 
   getRouter(): Router {
@@ -59,6 +63,18 @@ export class AuthRouter implements FeatureRouter {
         '/reset-password',
         schemaValidator({ body: resetPasswordSchema }),
         this.resetPassword,
+      )
+      .get(
+        '/logout',
+        schemaValidator({ cookies: logoutSchema }),
+        this.jwtAuthMiddleware.use,
+        this.logout,
+      )
+      .get(
+        '/logout-all',
+        schemaValidator({ cookies: logoutAllSchema }),
+        this.jwtAuthMiddleware.use,
+        this.logoutAll,
       );
     return this.router;
   }
@@ -83,7 +99,7 @@ export class AuthRouter implements FeatureRouter {
     res,
     next,
   ) => {
-    const response = await this.transactionRunnner.runInsideTransaction(
+    const response = await this.transactionRunner.runInsideTransaction(
       this.authService,
       (service) => service.signUp(req.body),
     );
@@ -94,7 +110,7 @@ export class AuthRouter implements FeatureRouter {
 
   refreshTokenRequestHandler: RequestHandler<any, void, RefreshTokenRequest> =
     async (req, res, next) => {
-      const response = await this.transactionRunnner.runInsideTransaction(
+      const response = await this.transactionRunner.runInsideTransaction(
         this.authService,
         (service) => service.refreshJwt(req.body.refreshToken),
       );
@@ -128,10 +144,22 @@ export class AuthRouter implements FeatureRouter {
     res,
     next,
   ) => {
-    await this.transactionRunnner.runInsideTransaction(
+    await this.transactionRunner.runInsideTransaction(
       this.authService,
       (service) => service.resetPassword(req.body),
     );
+    res.status(200).send();
+    next();
+  };
+
+  logout: RequestHandler = async (req, res, next) => {
+    await this.authService.logout(req.cookies[COOKIES.REFRESH_TOKEN]);
+    res.status(200).send();
+    next();
+  };
+
+  logoutAll: RequestHandler = async (_, res, next) => {
+    await this.authService.logoutOfAllDevices();
     res.status(200).send();
     next();
   };

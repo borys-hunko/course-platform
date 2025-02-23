@@ -93,18 +93,13 @@ export class JwtService implements IJwtService {
   }
 
   private async verifyJwt(token: string) {
-    try {
-      const secret = await this.getSecret();
+    const secret = await this.getSecret();
 
-      const payload = jwt.verify(token, secret);
-      if (typeof payload === 'string' || typeof payload.id !== 'number') {
-        throw new JsonWebTokenError('Invalid payload');
-      }
-      return payload;
-    } catch (error: unknown) {
-      await this.handleJwtError(error);
-      throw error;
+    const payload = jwt.verify(token, secret);
+    if (typeof payload === 'string' || typeof payload.id !== 'number') {
+      await this.handleJwtError(new JsonWebTokenError('Invalid payload'));
     }
+    return payload as JwtPayload;
   }
 
   private async handleJwtError(error: unknown) {

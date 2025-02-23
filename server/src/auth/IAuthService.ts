@@ -17,4 +17,6 @@ export interface IAuthService extends ITransactional<IAuthService> {
   ): Promise<void>;
   refreshJwt(refreshToken: string): Promise<LogInResponse>;
   authenticateJwt(jwt: string): Promise<void | HttpError>;
+  logout(refreshToken: string): Promise<void>;
+  logoutOfAllDevices(): Promise<void>;
 }

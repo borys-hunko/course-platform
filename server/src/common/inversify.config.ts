@@ -23,7 +23,7 @@ import {
 import { IPassResetTokenRepository } from '../auth/passResetToken/IPassResetTokenRepository';
 import { PassResetTokenRepository } from '../auth/passResetToken/PassResetTokenRepository';
 import datasource, { Datasource } from '../datasource';
-import { JwtAuthenticationMiddleaware } from '../middleware';
+import { JwtAuthenticationMiddleware } from '../middleware';
 import { CorrelationIdMiddleware } from '../middleware/correlationIdMiddleware';
 import { IUserResitory } from '../user/IUserRepository';
 import IUserService from '../user/IUserService';
@@ -116,7 +116,7 @@ container
 //middlewares
 container
   .bind<Middleware>(CONTAINER_IDS.JWT_AUTH_MIDDLEWARE)
-  .to(JwtAuthenticationMiddleaware)
+  .to(JwtAuthenticationMiddleware)
   .inSingletonScope();
 container
   .bind<Middleware>(CONTAINER_IDS.CORRELATION_ID_MIDDLEWARE)

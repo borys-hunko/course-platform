@@ -10,6 +10,7 @@ import {
   authenticationError,
   createToken,
   hashString,
+  notFoundError,
   parseToken,
 } from '../../common/utils';
 import IUserService from '../../user/IUserService';
@@ -54,7 +55,7 @@ export class PassResetTokenService implements IPassResetTokenService {
 
   async validateAndGetUser(
     passResetToken: string,
-  ): Promise<{ usetId: number }> {
+  ): Promise<{ userId: number }> {
     const { token, tokenId } = parseToken(
       passResetToken,
       authenticationError('Invalid token format'),
@@ -80,6 +81,20 @@ export class PassResetTokenService implements IPassResetTokenService {
 
     await this.passResetTokenRepo.deactivate(tokenId);
 
-    return { usetId: foundToken.userId };
+    return { userId: foundToken.userId };
+  }
+
+  async deactivateAll(userId: number): Promise<void> {
+    const res = this.passResetTokenRepo.deactivateAll(userId);
+    if (!res) {
+      throw notFoundError('User not found');
+    }
+  }
+
+  async deactivate(tokenId: string): Promise<void> {
+    const res = await this.passResetTokenRepo.deactivate(tokenId);
+    if (!res) {
+      throw notFoundError('Token not found');
+    }
   }
 }
