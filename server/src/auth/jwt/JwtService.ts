@@ -43,8 +43,12 @@ export class JwtService implements IJwtService {
   }
 
   async checkJwt(token: string): Promise<JwtPayload> {
-    const payload: jwt.JwtPayload = await this.verifyJwt(token);
-    return { id: payload['id'] };
+    try {
+      const payload: jwt.JwtPayload = await this.verifyJwt(token);
+      return { id: payload['id'] };
+    } catch (error: unknown) {
+      throw await this.handleJwtError(error);
+    }
   }
 
   async getTokens(userId: number): Promise<TokensResponse> {
@@ -96,8 +100,9 @@ export class JwtService implements IJwtService {
     const secret = await this.getSecret();
 
     const payload = jwt.verify(token, secret);
-    if (typeof payload === 'string' || typeof payload.id !== 'number') {
-      await this.handleJwtError(new JsonWebTokenError('Invalid payload'));
+    this.logger.debug('verifyJwt response', { payload });
+    if (typeof payload === 'string' || typeof payload.id !== 'string') {
+      throw await this.handleJwtError(new JsonWebTokenError('Invalid payload'));
     }
     return payload as JwtPayload;
   }
@@ -105,12 +110,13 @@ export class JwtService implements IJwtService {
   private async handleJwtError(error: unknown) {
     if (error instanceof JsonWebTokenError) {
       const errorMessage = capitalize(error.message);
-      throw authenticationError(errorMessage, {
+      return authenticationError(errorMessage, {
         authScheme: AUTH_SCHEME,
         resource: await this.getAppName(),
         error: 'Invalid jwt',
       });
     }
+    return error;
   }
 
   private async checkRefreshToken(refreshToken: string) {

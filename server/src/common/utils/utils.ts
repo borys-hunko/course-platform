@@ -26,3 +26,28 @@ export const parseToken = (tokenStr: string, err: HttpError) => {
     token: splitToken[1],
   };
 };
+
+export const splitArrays = <T>(
+  arr: T[],
+  getKey: (val: T) => string | number | symbol,
+): T[][] => {
+  const mapped = arr.reduce(
+    (acc, curr) => ({
+      ...acc,
+      [getKey(curr)]: [...(acc[getKey(curr)] || []), curr],
+    }),
+    {} as Record<string | number | symbol, T[]>,
+  );
+  return Object.values(mapped);
+};
+
+export const getTotalPagesCount = (
+  itemsPerPage: number,
+  totalCount: number,
+) => {
+  const pages = totalCount / itemsPerPage;
+  if (Number.isInteger(pages)) {
+    return pages;
+  }
+  return Math.floor(pages) + 1;
+};

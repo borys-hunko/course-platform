@@ -11,5 +11,5 @@ export interface ITransactionRunner<E> {
 export type Transaction = Knex.Transaction<any, any[]>;
 
 export interface ITransactional<T> {
-  createTransactionalInstance(tsx: Transaction): T;
+  createTransactionalInstance(trx: Transaction): T;
 }

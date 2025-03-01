@@ -1,4 +1,4 @@
-import { RequestHandler, Router } from 'express';
+import { RequestHandler, Router, Response } from 'express';
 import createHttpError from 'http-errors';
 import { inject, injectable } from 'inversify';
 import { CONTAINER_IDS, COOKIES } from '../common/consts';
@@ -154,13 +154,20 @@ export class AuthRouter implements FeatureRouter {
 
   logout: RequestHandler = async (req, res, next) => {
     await this.authService.logout(req.cookies[COOKIES.REFRESH_TOKEN]);
+    this.clearCookies(res);
     res.status(200).send();
     next();
   };
 
   logoutAll: RequestHandler = async (_, res, next) => {
     await this.authService.logoutOfAllDevices();
+    this.clearCookies(res);
     res.status(200).send();
     next();
+  };
+
+  private clearCookies = (res: Response) => {
+    res.clearCookie(COOKIES.REFRESH_TOKEN);
+    res.clearCookie(COOKIES.ACCESS_TOKEN);
   };
 }

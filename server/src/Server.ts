@@ -9,15 +9,16 @@ import { IMailService } from './common/mail';
 import { FeatureRouter, Middleware } from './common/types';
 import { notFoundError } from './common/utils';
 import { Datasource } from './datasource';
-import { localStorageMiddleware } from './middleware';
 import {
   createErrorResponseHandler,
   errorHandler,
-} from './middleware/errorHandlerMiddleware';
+  localStorageMiddleware,
+} from './middleware';
+
 @injectable()
 export class Server {
   constructor(
-    @multiInject(CONTAINER_IDS.APP_ROUTER)
+    @multiInject(CONTAINER_IDS.FEATURE_ROUTER)
     private featureRouters: FeatureRouter[],
     @inject(CONTAINER_IDS.ROUTER) private router: Router,
     @inject(CONTAINER_IDS.APP) private app: Express,
@@ -56,7 +57,12 @@ export class Server {
     this.app.use(this.handle404);
   }
 
-  private async handle404(req: Request, res: Response, next: NextFunction) {
+  private async handle404(
+    _error: unknown,
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
     const error = notFoundError(`route ${req.originalUrl} does not exists`);
     await errorHandler(error, req, res, next);
   }

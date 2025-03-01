@@ -12,7 +12,7 @@ export class MailService implements IMailService {
   transporter: Transporter<SESTransport.SentMessageInfo> | null = null;
 
   constructor(
-    @inject(CONTAINER_IDS.MAIL_TRANSPORTER)
+    @inject(CONTAINER_IDS.MAIL_TRANSPORTER_PROVIDER)
     private transporterProvider: () => Promise<
       Transporter<SESTransport.SentMessageInfo>
     >,

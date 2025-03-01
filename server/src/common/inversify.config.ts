@@ -23,14 +23,12 @@ import {
 import { IPassResetTokenRepository } from '../auth/passResetToken/IPassResetTokenRepository';
 import { PassResetTokenRepository } from '../auth/passResetToken/PassResetTokenRepository';
 import datasource, { Datasource } from '../datasource';
-import { JwtAuthenticationMiddleware } from '../middleware';
-import { CorrelationIdMiddleware } from '../middleware/correlationIdMiddleware';
 import { IUserResitory } from '../user/IUserRepository';
 import IUserService from '../user/IUserService';
 import { UserRepository } from '../user/UserRepository';
 import { UserRouter } from '../user/UserRouter';
 import { UserService } from '../user/UserService';
-import ConfigServise from './config/ConfigService';
+import ConfigService from './config/ConfigService';
 import IConfigService from './config/IConfigService';
 import { CONTAINER_IDS } from './consts';
 import {
@@ -42,7 +40,9 @@ import { ILocalStorageLogger, ILogger, Logger } from './logger';
 import { LocalStorageLogger } from './logger/LocalStorageLogger';
 import { IMailService, MailService } from './mail';
 import { ITransactionRunner, TransactionRunner } from './transactionRunner';
-import { FeatureRouter, Middleware } from './types';
+import { FeatureRouter } from './types';
+import { courseModule } from '../course';
+import { middlewareModule } from '../middleware/module';
 
 const container = new Container();
 
@@ -53,7 +53,7 @@ container
   .toConstantValue(datasource);
 container
   .bind<IConfigService>(CONTAINER_IDS.CONFIG_SERVICE)
-  .to(ConfigServise)
+  .to(ConfigService)
   .inSingletonScope();
 container
   .bind<Router>(CONTAINER_IDS.ROUTER)
@@ -100,7 +100,7 @@ const createMailTransporter: interfaces.ProviderCreator<
 container
   .bind<
     Transporter<SESTransport.SentMessageInfo>
-  >(CONTAINER_IDS.MAIL_TRANSPORTER)
+  >(CONTAINER_IDS.MAIL_TRANSPORTER_PROVIDER)
   .toProvider<Transporter<SESTransport.SentMessageInfo>>(createMailTransporter);
 container.bind<Liquid>(CONTAINER_IDS.TEMPLATE_ENGINE).toConstantValue(
   new Liquid({
@@ -113,16 +113,6 @@ container
   .to(MailService)
   .inSingletonScope();
 
-//middlewares
-container
-  .bind<Middleware>(CONTAINER_IDS.JWT_AUTH_MIDDLEWARE)
-  .to(JwtAuthenticationMiddleware)
-  .inSingletonScope();
-container
-  .bind<Middleware>(CONTAINER_IDS.CORRELATION_ID_MIDDLEWARE)
-  .to(CorrelationIdMiddleware)
-  .inSingletonScope();
-
 //user
 container
   .bind<IUserService>(CONTAINER_IDS.USER_SERVICE)
@@ -133,13 +123,13 @@ container
   .to(UserRepository)
   .inSingletonScope();
 container
-  .bind<FeatureRouter>(CONTAINER_IDS.APP_ROUTER)
+  .bind<FeatureRouter>(CONTAINER_IDS.FEATURE_ROUTER)
   .to(UserRouter)
   .inSingletonScope();
 
 //auth
 container
-  .bind<FeatureRouter>(CONTAINER_IDS.APP_ROUTER)
+  .bind<FeatureRouter>(CONTAINER_IDS.FEATURE_ROUTER)
   .to(AuthRouter)
   .inSingletonScope();
 container
@@ -159,5 +149,8 @@ container
   .to(JwtService)
   .inSingletonScope();
 container.bind<IAuthService>(CONTAINER_IDS.AUTH_SERVICE).to(AuthService);
+
+container.load(courseModule);
+container.load(middlewareModule);
 
 export default container;

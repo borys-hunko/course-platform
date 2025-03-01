@@ -32,12 +32,17 @@ export class JwtAuthenticationMiddleware implements Middleware {
     }
     next();
   };
-  private refreshJwt = async (
-    refreshToken: string,
-    res: Response<any, Record<string, any>>,
-  ) => {
+
+  private refreshJwt = async (refreshToken: string, res: Response) => {
     const tokens = await this.authService.refreshJwt(refreshToken);
     setAuthCookies(res, tokens);
-    await this.authService.authenticateJwt(tokens.jwt.token);
+
+    const authResponse = await this.authService.authenticateJwt(
+      tokens.jwt.token,
+    );
+
+    if (authResponse) {
+      throw authResponse;
+    }
   };
 }

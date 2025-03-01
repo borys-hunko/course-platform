@@ -15,9 +15,12 @@ export const createErrorResponseHandler: ErrorRequestHandler = (
   } else if (err instanceof Error) {
     httpError = createHttpError(500, 'Unexpected server error', {
       details: err.message,
+      stack: err.stack,
     });
   } else {
-    httpError = createHttpError(500, 'Unexpected server error');
+    httpError = createHttpError(500, 'Unexpected server error', {
+      stack: err?.stack,
+    });
   }
   Error.captureStackTrace(httpError);
   console.log('created error from:', err);
@@ -32,7 +35,7 @@ export const errorHandler: ErrorRequestHandler = (
 ) => {
   console.error('handled error', err);
   const { headers, ...errResponse } = err;
-  delete err.stack;
+  delete errResponse.stack;
   if (headers) {
     Object.keys(headers).forEach((key) => res.setHeader(key, headers[key]));
   }

@@ -30,3 +30,11 @@ export const authenticationError = (
   }
   return error;
 };
+
+export const forbiddenError = (details: string) => {
+  return createError(403, 'Forbidden', details);
+};
+
+export const internalError = (details: string) => {
+  return createError(500, 'Internal Server Error', details);
+};

@@ -49,7 +49,7 @@ export class AuthService implements IAuthService {
   async authenticateJwt(token: string): Promise<void | HttpError> {
     try {
       const payload = await this.jwtService.checkJwt(token);
-      this.localStorage.set('userId', payload.id);
+      this.localStorage.set('userId', Number(payload.id));
     } catch (error) {
       if (error instanceof HttpError) {
         return error;
