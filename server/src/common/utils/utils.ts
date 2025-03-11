@@ -51,3 +51,7 @@ export const getTotalPagesCount = (
   }
   return Math.floor(pages) + 1;
 };
+
+export function isValidPage(count: number, itemsPerPage: number, page: number) {
+  return count < itemsPerPage * (page - 1);
+}

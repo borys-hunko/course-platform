@@ -20,8 +20,11 @@ import { USER_TABLE_NAME } from '../user/consts';
 import { ILogger } from '../common/logger';
 import { splitArrays } from '../common/utils';
 import { Knex } from 'knex';
+import { COURSE_FTS_TABLE_NAME } from './CourseFtsRepository';
 
-const COURSE_TABLE_NAME = 'course';
+export const COURSE_TABLE_NAME = 'course';
+const TAG_FILTER_CTE = 'tagFilter';
+const FTS_FILTER_CTE = 'ftsFilter';
 
 export class CourseRepository implements ICourseRepository {
   constructor(
@@ -49,23 +52,6 @@ export class CourseRepository implements ICourseRepository {
       .update(updateRequest, '*')
       .where('id', id);
     return updatedCourses[0];
-  }
-
-  async search({
-    tags,
-    page,
-    itemsPerPage,
-  }: SearchCourseRequest): Promise<Course[]> {
-    const query = this.getCourses()
-      .modify(this.selectCourseFields)
-      .modify(this.findCourseIdsByTags, page, itemsPerPage, tags)
-      .orderBy(['c.id', 't.id']);
-    this.logger.debug('search query', { query: query.toSQL().sql });
-    const result: CourseRow[] = await query;
-
-    return splitArrays(result, (row) => row.course_id).map((rows) =>
-      this.mapRowToEntity(rows),
-    );
   }
 
   async getById(id: number): Promise<Course | undefined> {
@@ -100,14 +86,13 @@ export class CourseRepository implements ICourseRepository {
       .first();
   }
 
-  async getRowsCount({
-    tags,
-    page,
-    itemsPerPage,
-  }: SearchCourseRequest): Promise<number> {
+  async getRowsCount(params: SearchCourseRequest): Promise<number> {
     const res = await this.getCourses()
       .countDistinct('c.id')
-      .modify(this.findCourseIdsByTags, page, itemsPerPage, tags, false)
+      .modify(this.withTags, params)
+      .modify(this.withFts, params)
+      .modify(this.filterTags, params)
+      .modify(this.filterFts, params)
       .first();
 
     this.logger.debug('getRowsCount', { count: JSON.stringify(res) });
@@ -116,6 +101,24 @@ export class CourseRepository implements ICourseRepository {
     }
 
     return Number(res.count);
+  }
+
+  async search(params: SearchCourseRequest): Promise<Course[]> {
+    const query = this.getCourses()
+      .modify(this.selectCourseFields, params)
+      .modify(this.withTags, params, true)
+      .modify(this.withFts, params, true)
+      .modify(this.filterTags, params)
+      .modify(this.filterFts, params)
+      .modify(this.orderCourses, params);
+
+    this.logger.debug('search query', { query: query.toSQL().sql });
+
+    const result: CourseRow[] = await query;
+
+    return splitArrays(result, (row) => row.course_id).map((rows) =>
+      this.mapRowToEntity(rows),
+    );
   }
 
   createTransactionalInstance(trx: Transaction): ICourseRepository {
@@ -129,8 +132,11 @@ export class CourseRepository implements ICourseRepository {
       .join(`${USER_TABLE_NAME} as u`, 'u.id', 'c.authorId');
   }
 
-  private selectCourseFields(q: Knex.QueryBuilder) {
-    return q.select(
+  private selectCourseFields(
+    q: Knex.QueryBuilder,
+    params?: SearchCourseRequest,
+  ) {
+    const rows = [
       'c.id as course_id',
       'c.name as course_name',
       'c.description as course_description',
@@ -141,7 +147,110 @@ export class CourseRepository implements ICourseRepository {
       'u.id as user_id',
       'u.name as user_name',
       'u.login as user_login',
+    ];
+
+    if (params?.q) {
+      rows.push('fts.rank as rank', 'fts.similarity as similarity');
+    }
+
+    return q.select(...rows);
+  }
+
+  private withTags = (
+    q: Knex.QueryBuilder,
+    { tags, q: search, page, itemsPerPage }: SearchCourseRequest,
+    withPagination?: boolean,
+  ) => {
+    if (!tags) {
+      return q;
+    }
+
+    const tagFilterQuery = this.datasource<CourseToTagTable>(
+      COURSE_TO_TAG_TABLE_NAME,
+    )
+      .distinct('courseId')
+      .whereIn('tagId', tags);
+
+    if (!search && withPagination) {
+      tagFilterQuery
+        .offset(this.getOffset(page, itemsPerPage))
+        .limit(itemsPerPage);
+    }
+
+    q.with(TAG_FILTER_CTE, tagFilterQuery);
+
+    return q;
+  };
+
+  private withFts = (
+    q: Knex.QueryBuilder,
+    { tags, q: search, page, itemsPerPage }: SearchCourseRequest,
+    withPagination?: boolean,
+  ) => {
+    this.logger.debug('search', { search, tags });
+    if (!search) {
+      return q;
+    }
+
+    const ftsQuery = this.datasource(`${COURSE_FTS_TABLE_NAME} as fts`).select(
+      'fts.courseId',
+      this.datasource.raw(
+        `ts_rank(fts.fulltext, to_tsquery('english', ?)) as rank`,
+        [search],
+      ),
+      this.datasource.raw(`similarity(c.name, :search) as similarity`, {
+        search,
+      }),
     );
+
+    if (tags?.length) {
+      ftsQuery.join(`${TAG_FILTER_CTE} as tf`, 'tf.courseId', 'fts.courseId');
+    }
+    ftsQuery.join(`${COURSE_TABLE_NAME} as c`, 'c.id', 'fts.courseId');
+    ftsQuery.whereRaw(
+      `fts.fulltext @@ to_tsquery('english', :search) OR similarity(c.name, :search) > 0`,
+      { search },
+    );
+
+    if (withPagination) {
+      ftsQuery
+        .orderByRaw('rank DESC, similarity DESC, fts."courseId"')
+        .limit(itemsPerPage)
+        .offset(this.getOffset(page, itemsPerPage));
+    }
+
+    q.with(FTS_FILTER_CTE, ftsQuery);
+  };
+
+  private filterTags(q: Knex.QueryBuilder, params: SearchCourseRequest) {
+    if (!params.q && params.tags?.length) {
+      q.join(`${TAG_FILTER_CTE} as tf`, 'tf.courseId', 'c.id');
+    }
+  }
+
+  private filterFts(q: Knex.QueryBuilder, params: SearchCourseRequest) {
+    if (params.q) {
+      q.join(`${FTS_FILTER_CTE} as fts`, 'fts.courseId', 'c.id');
+    }
+  }
+
+  private orderCourses(q: Knex.QueryBuilder, params: SearchCourseRequest) {
+    const order: any[] = [{ column: 'c.id' }, { column: 't.id' }];
+
+    if (params.q) {
+      order.unshift(
+        {
+          column: 'rank',
+          order: 'desc',
+        },
+        {
+          column: 'similarity',
+          order: 'desc',
+        },
+      );
+    }
+
+    q.orderBy(order);
   }
 
   private findCourseIdsByTags = (
@@ -159,11 +268,17 @@ export class CourseRepository implements ICourseRepository {
       nestedQuery.whereIn('tagId', tags);
     }
     if (withPagination) {
-      nestedQuery.limit(itemsPerPage).offset((page - 1) * itemsPerPage);
+      nestedQuery
+        .limit(itemsPerPage)
+        .offset(this.getOffset(page, itemsPerPage));
     }
 
     q.whereIn('c.id', nestedQuery);
   };
+
+  private getOffset(page: number, itemsPerPage: number) {
+    return (page - 1) * itemsPerPage;
+  }
 
   private mapRowToEntity(rows: CourseRow[]): Course {
     const tags: Tag[] = rows.map((cr) => ({

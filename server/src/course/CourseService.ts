@@ -1,17 +1,22 @@
 import { Transaction } from '../common/transactionRunner';
-import { ICourseRepository, ICourseService } from './interfaces';
 import {
-  CreateCourseRequest,
+  ICourseFtsRepository,
+  ICourseRepository,
+  ICourseService,
+} from './interfaces';
+import {
   Course,
-  UpdateCourseRequest,
-  SearchCourseRequest,
   CoursesPageResponse,
   CourseTable,
+  CreateCourseRequest,
+  SearchCourseRequest,
+  UpdateCourseRequest,
 } from './types';
 import { inject, injectable } from 'inversify';
 import {
   badRequestError,
   getTotalPagesCount,
+  isValidPage,
   notFoundError,
 } from '../common/utils';
 import { ITagService } from './tag';
@@ -29,6 +34,8 @@ export class CourseService implements ICourseService {
     private readonly tagService: ITagService,
     @inject(CONTAINER_IDS.USER_SERVICE)
     private readonly userService: IUserService,
+    @inject(CONTAINER_IDS.COURSE_FTS_REPOSITORY)
+    private readonly courseFtsRepository: ICourseFtsRepository,
     @inject(CONTAINER_IDS.LOCAL_STORAGE)
     private readonly localStorage: ILocalStorage,
     @inject(CONTAINER_IDS.LOGGER) private readonly logger: ILogger,
@@ -51,6 +58,9 @@ export class CourseService implements ICourseService {
       createdCourse.id,
       tags,
     );
+
+    await this.courseFtsRepository.create(createdCourse.id);
+
     const user = await this.userService.getMe();
 
     return {
@@ -77,14 +87,15 @@ export class CourseService implements ICourseService {
         id,
         courseChanges,
       );
-      if (!updateResult) {
-        throw notFoundError('Course not found');
-      }
+
+      this.checkIfUpdated(updateResult);
     }
 
     if (tags) {
       await this.tagService.updateTags(id, tags);
     }
+
+    await this.courseFtsRepository.update(id);
 
     return this.getById(id);
   }
@@ -114,7 +125,7 @@ export class CourseService implements ICourseService {
   async search(search: SearchCourseRequest): Promise<CoursesPageResponse> {
     const { itemsPerPage, page } = search;
     const count = await this.courseRepository.getRowsCount(search);
-    if (count < itemsPerPage * (page - 1)) {
+    if (isValidPage(count, itemsPerPage, page)) {
       throw badRequestError("Page doesn't exist");
     }
 
@@ -134,8 +145,15 @@ export class CourseService implements ICourseService {
       this.courseRepository.createTransactionalInstance(trx),
       this.tagService.createTransactionalInstance(trx),
       this.userService.createTransactionalInstance(trx),
+      this.courseFtsRepository.createTransactionalInstance(trx),
       this.localStorage,
       this.logger,
     );
+  }
+
+  private checkIfUpdated(updateResult: CourseTable | undefined) {
+    if (!updateResult) {
+      throw notFoundError('Course not found');
+    }
   }
 }

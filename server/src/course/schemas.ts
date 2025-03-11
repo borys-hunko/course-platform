@@ -51,6 +51,7 @@ export const searchCoursesSchema = z.object({
     .transform((v) => Number(v))
     .refine((v) => !isNaN(v))
     .refine((v) => v <= 300),
+  q: z.string().optional(),
 });
 
 export const getCourseByIdSchema = z.object({

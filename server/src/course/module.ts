@@ -1,7 +1,12 @@
 import { ContainerModule } from 'inversify';
 import { FeatureRouter } from '../common/types';
 import { CONTAINER_IDS } from '../common/consts';
-import { CourseRouter, ICourseRepository, ICourseService } from '.';
+import {
+  CourseRouter,
+  ICourseFtsRepository,
+  ICourseRepository,
+  ICourseService,
+} from '.';
 import {
   ITagRepository,
   ITagService,
@@ -11,6 +16,7 @@ import {
 } from './tag';
 import { CourseRepository } from './CourseRepository';
 import { CourseService } from './CourseService';
+import { CourseFtsRepository } from './CourseFtsRepository';
 
 export const courseModule = new ContainerModule((bind) => {
   bind<FeatureRouter>(CONTAINER_IDS.FEATURE_ROUTER)
@@ -31,5 +37,8 @@ export const courseModule = new ContainerModule((bind) => {
     .inSingletonScope();
   bind<ICourseService>(CONTAINER_IDS.COURSE_SERVICE)
     .to(CourseService)
+    .inSingletonScope();
+  bind<ICourseFtsRepository>(CONTAINER_IDS.COURSE_FTS_REPOSITORY)
+    .to(CourseFtsRepository)
     .inSingletonScope();
 });

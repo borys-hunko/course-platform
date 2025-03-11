@@ -28,6 +28,11 @@ export interface CourseTable {
   authorId: number;
 }
 
+export interface CourseFtsTable {
+  id: number;
+  fulltext: any;
+}
+
 // dto
 export type CreateCourseRequest = z.infer<typeof createCourseSchema>;
 export type UpdateCourseRequest = z.infer<typeof updateCourseSchema.body>;

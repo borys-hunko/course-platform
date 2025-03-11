@@ -34,3 +34,9 @@ export interface ICourseRepository extends ITransactional<ICourseRepository> {
   findByName(name: string): Promise<CourseTable | undefined>;
   getRowsCount(search: SearchCourseRequest): Promise<number>;
 }
+
+export interface ICourseFtsRepository
+  extends ITransactional<ICourseFtsRepository> {
+  create(id: number): Promise<void>;
+  update(id: number): Promise<void>;
+}
