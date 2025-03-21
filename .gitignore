@@ -5,5 +5,5 @@ volumes
 */build
 */.env
 */.next
-**/.terraform*
+**/.terraform
 .idea
