@@ -1,12 +1,6 @@
-import * as awsSES from '@aws-sdk/client-ses';
-import { defaultProvider } from '@aws-sdk/credential-provider-node';
 import { AsyncLocalStorage } from 'async_hooks';
 import express, { Express, Router } from 'express';
-import { Container, interfaces } from 'inversify';
-import { Liquid } from 'liquidjs';
-import { createTransport, Transporter } from 'nodemailer';
-import SESTransport from 'nodemailer/lib/ses-transport';
-import path from 'path';
+import { Container } from 'inversify';
 import { AuthRouter } from '../auth/AuthRouter';
 import { AuthService } from '../auth/AuthService';
 import { IAuthService } from '../auth/IAuthService';
@@ -38,11 +32,13 @@ import {
 } from './localStorage';
 import { ILocalStorageLogger, ILogger, Logger } from './logger';
 import { LocalStorageLogger } from './logger/LocalStorageLogger';
-import { IMailService, MailService } from './mail';
+import { mailModule } from './mail';
 import { ITransactionRunner, TransactionRunner } from './transactionRunner';
 import { FeatureRouter } from './types';
 import { courseModule } from '../course';
 import { middlewareModule } from '../middleware/module';
+import { imageModule } from './image/module';
+import { Server } from '../Server';
 
 const container = new Container();
 
@@ -75,42 +71,6 @@ container.bind<ILogger>(CONTAINER_IDS.LOGGER).to(Logger).inSingletonScope();
 container
   .bind<ILocalStorageLogger>(CONTAINER_IDS.LOCAL_STORAGE_LOGGER)
   .to(LocalStorageLogger)
-  .inSingletonScope();
-
-// mail
-const createMailTransporter: interfaces.ProviderCreator<
-  Transporter<SESTransport.SentMessageInfo>
-> = (context: interfaces.Context) => {
-  return async () => {
-    const configService = context.container.get<IConfigService>(
-      CONTAINER_IDS.CONFIG_SERVICE,
-    );
-    const ses = new awsSES.SES({
-      region: await configService.get('AWS_REGION'),
-      credentials: defaultProvider(),
-      apiVersion: '2010-12-01',
-    });
-
-    // console.log('domainEmail', domainEmail);
-    return createTransport({
-      SES: { aws: awsSES, ses },
-    });
-  };
-};
-container
-  .bind<
-    Transporter<SESTransport.SentMessageInfo>
-  >(CONTAINER_IDS.MAIL_TRANSPORTER_PROVIDER)
-  .toProvider<Transporter<SESTransport.SentMessageInfo>>(createMailTransporter);
-container.bind<Liquid>(CONTAINER_IDS.TEMPLATE_ENGINE).toConstantValue(
-  new Liquid({
-    root: path.resolve(__dirname, '../..', 'templates'),
-    extname: '.liquid',
-  }),
-);
-container
-  .bind<IMailService>(CONTAINER_IDS.MAIL_SERVICE)
-  .to(MailService)
   .inSingletonScope();
 
 //user
@@ -149,8 +109,7 @@ container
   .to(JwtService)
   .inSingletonScope();
 container.bind<IAuthService>(CONTAINER_IDS.AUTH_SERVICE).to(AuthService);
-
-container.load(courseModule);
-container.load(middlewareModule);
+container.bind<Server>(CONTAINER_IDS.SERVER).to(Server);
+container.load(courseModule, middlewareModule, mailModule, imageModule);
 
 export default container;

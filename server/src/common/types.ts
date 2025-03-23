@@ -6,6 +6,10 @@ export interface FeatureRouter {
   getRouterPath(): string;
 }
 
+export interface Initiatable {
+  init(): Promise<void>;
+}
+
 export type AtLeastOne<T> = {
   [K in keyof T]-?: Required<Pick<T, K>> &
     Partial<Pick<T, Exclude<keyof T, K>>>;
@@ -47,3 +51,5 @@ export interface ValidatedRequest<
     query: ReqQuery;
   };
 }
+
+export type MulterFile = Express.Multer.File;

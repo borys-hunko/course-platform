@@ -1,5 +1,6 @@
 export const CONTAINER_IDS = {
   ROUTER: Symbol.for('ROUTER_FACTORY'),
+  SERVER: Symbol.for('SERVER'),
   CONFIG_SERVICE: Symbol.for('CONFIG_SERVICE'),
   FEATURE_ROUTER: Symbol.for('APP_ROUTER'),
   APP: Symbol.for('APP'),
@@ -30,4 +31,7 @@ export const CONTAINER_IDS = {
     'COURSE_EDIT_AUTHORIZATION_MIDDLEWARE',
   ),
   COURSE_FTS_REPOSITORY: Symbol.for('COURSE_FTS_REPOSITORY'),
+  // INITIATABLE: Symbol.for('INITIATABLE'),
+  S3_CLIENT_PROVIDER: Symbol.for('S3_CLIENT'),
+  IMAGE_SERVICE: Symbol.for('IMAGE_SERVICE'),
 };

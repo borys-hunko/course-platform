@@ -24,6 +24,8 @@ import { CONTAINER_IDS } from '../common/consts';
 import { ILocalStorage } from '../common/localStorage';
 import IUserService from '../user/IUserService';
 import { ILogger } from '../common/logger';
+import { MulterFile } from '../common/types';
+import { IImageService } from '../common/image';
 
 @injectable()
 export class CourseService implements ICourseService {
@@ -39,6 +41,8 @@ export class CourseService implements ICourseService {
     @inject(CONTAINER_IDS.LOCAL_STORAGE)
     private readonly localStorage: ILocalStorage,
     @inject(CONTAINER_IDS.LOGGER) private readonly logger: ILogger,
+    @inject(CONTAINER_IDS.IMAGE_SERVICE)
+    private readonly imageService: IImageService,
   ) {}
 
   async create(createRequest: CreateCourseRequest): Promise<Course> {
@@ -69,6 +73,8 @@ export class CourseService implements ICourseService {
       description: createdCourse.description,
       isDraft: createdCourse.isDraft,
       tags: createdTags,
+      isPictureMinified: createdCourse.isPictureMinified,
+      imageHash: createdCourse.imageHash,
       author: {
         id: userId,
         name: user.name,
@@ -140,6 +146,38 @@ export class CourseService implements ICourseService {
     };
   }
 
+  async uploadCoursePicture(
+    courseId: number,
+    file: MulterFile,
+  ): Promise<Course> {
+    const course = await this.getById(courseId);
+
+    if (course.picture) {
+      await this.imageService.delete([
+        course.picture,
+        `minified/${course.picture}`,
+      ]);
+    }
+
+    const createdFileName = await this.imageService.upload(file);
+    const updatedEntity = await this.courseRepository.update(courseId, {
+      picture: createdFileName,
+      isPictureMinified: false,
+      imageHash: null,
+    });
+
+    if (!updatedEntity) {
+      throw new Error('Could upload image');
+    }
+
+    return {
+      ...course,
+      picture: updatedEntity.picture,
+      isPictureMinified: updatedEntity.isPictureMinified,
+      imageHash: updatedEntity.imageHash,
+    };
+  }
+
   createTransactionalInstance(trx: Transaction): ICourseService {
     return new CourseService(
       this.courseRepository.createTransactionalInstance(trx),
@@ -148,6 +186,7 @@ export class CourseService implements ICourseService {
       this.courseFtsRepository.createTransactionalInstance(trx),
       this.localStorage,
       this.logger,
+      this.imageService,
     );
   }
 

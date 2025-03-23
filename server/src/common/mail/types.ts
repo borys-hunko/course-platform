@@ -1,6 +1,7 @@
-export interface IMailService {
+import { Initiatable } from '../types';
+
+export interface IMailService extends Initiatable {
   sendEmail(options: EmailOption): Promise<void>;
-  init(): Promise<void>;
 }
 
 export interface EmailOption {

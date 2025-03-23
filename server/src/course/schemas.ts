@@ -3,8 +3,8 @@ import z from 'zod';
 const TAGS_SCHEMA = z.array(z.string().max(20)).max(30);
 const COURSE_NAME = z.string().max(70).min(5);
 const COURSE_DESCRIPTION = z.string().max(2000);
-
 const NUMBER_REGEX = /^\d+$/;
+const COURSE_ID_SCHEMA = z.string().regex(NUMBER_REGEX);
 
 export const createCourseSchema = z.object({
   name: COURSE_NAME,
@@ -25,7 +25,7 @@ export const updateCourseSchema = {
       message: 'At least one field is required',
     }),
   params: z.object({
-    courseId: z.string().regex(NUMBER_REGEX),
+    courseId: COURSE_ID_SCHEMA,
   }),
 };
 
@@ -55,5 +55,14 @@ export const searchCoursesSchema = z.object({
 });
 
 export const getCourseByIdSchema = z.object({
-  courseId: z.string().regex(NUMBER_REGEX),
+  courseId: COURSE_ID_SCHEMA,
 });
+
+export const uploadPhotoSchema = {
+  params: z.object({
+    courseId: COURSE_ID_SCHEMA,
+  }),
+  headers: z.object({
+    'content-type': z.string().includes('multipart/form-data'),
+  }),
+};

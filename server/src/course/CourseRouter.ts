@@ -4,12 +4,13 @@ import { CONTAINER_IDS } from '../common/consts';
 import { inject, injectable } from 'inversify';
 import { ICourseService } from './interfaces';
 import { ITransactionRunner } from '../common/transactionRunner';
-import { schemaValidator } from '../middleware';
+import { multipartFileUpload, schemaValidator } from '../middleware';
 import {
   createCourseSchema,
   getCourseByIdSchema,
   searchCoursesSchema,
   updateCourseSchema,
+  uploadPhotoSchema,
 } from './schemas';
 import {
   Course,
@@ -20,6 +21,7 @@ import {
   UpdateCourseRequest,
 } from './types';
 import { ParamsDictionary } from 'express-serve-static-core';
+import { isArray } from 'lodash';
 
 @injectable()
 export class CourseRouter implements FeatureRouter {
@@ -62,6 +64,21 @@ export class CourseRouter implements FeatureRouter {
         this.jwtAuthMiddleware.use,
         this.courseEditAuthMiddleware.use,
         this.updateCourse,
+      )
+      .put(
+        '/:courseId/picture',
+        schemaValidator({
+          params: uploadPhotoSchema.params,
+          header: uploadPhotoSchema.headers,
+        }),
+        this.jwtAuthMiddleware.use,
+        this.courseEditAuthMiddleware.use,
+        multipartFileUpload({
+          filesNumber: 1,
+          fieldName: 'course_picture',
+          allowedTypes: ['png', 'jpeg', 'jpg'],
+        }),
+        this.uploadCourseImage,
       );
     return this.router;
   }
@@ -118,4 +135,22 @@ export class CourseRouter implements FeatureRouter {
       res.status(200).json(result);
       next();
     };
+
+  uploadCourseImage: RequestHandler<ParamsDictionary, Course> = async (
+    req,
+    res,
+    next,
+  ) => {
+    const files = req.files;
+    if (!isArray(files) || files.length !== 1) {
+      throw new Error('Invalid file format'); // this should not happen
+    }
+    const file = files[0];
+    const resp = await this.courseService.uploadCoursePicture(
+      Number(req.params.courseId),
+      file,
+    );
+    res.status(200).json(resp);
+    next();
+  };
 }

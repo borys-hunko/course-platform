@@ -45,6 +45,7 @@ export const schemaValidator = (schemas: {
         const httpError = createError<400>(400, 'Invalid request', {
           details: errorMessages,
         });
+        httpError.stack = error.stack;
         next(httpError);
         return;
       }

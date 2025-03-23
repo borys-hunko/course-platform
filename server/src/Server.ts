@@ -5,15 +5,10 @@ import { inject, injectable, multiInject } from 'inversify';
 import IConfigService from './common/config/IConfigService';
 import { CONTAINER_IDS } from './common/consts';
 import { ILocalStorage } from './common/localStorage';
-import { IMailService } from './common/mail';
 import { FeatureRouter, Middleware } from './common/types';
 import { notFoundError } from './common/utils';
 import { Datasource } from './datasource';
-import {
-  createErrorResponseHandler,
-  errorHandler,
-  localStorageMiddleware,
-} from './middleware';
+import { errorHandler, localStorageMiddleware } from './middleware';
 
 @injectable()
 export class Server {
@@ -28,7 +23,6 @@ export class Server {
     private correlationIdMiddleware: Middleware,
     @inject(CONTAINER_IDS.LOCAL_STORAGE)
     private localStorage: ILocalStorage,
-    @inject(CONTAINER_IDS.MAIL_SERVICE) private mailService: IMailService,
   ) {}
 
   async startServer() {
@@ -50,9 +44,7 @@ export class Server {
     this.app.use(urlencoded({ extended: true }));
     this.app.use(cookieParser());
     this.app.use(this.correlationIdMiddleware.use);
-    await this.initServices();
     this.app.use(this.router);
-    this.app.use(createErrorResponseHandler);
     this.app.use(errorHandler);
     this.app.use(this.handle404);
   }
@@ -79,9 +71,5 @@ export class Server {
     } catch (e) {
       console.error('error occured', e);
     }
-  }
-
-  private async initServices() {
-    await this.mailService.init();
   }
 }

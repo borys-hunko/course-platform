@@ -15,8 +15,10 @@ export interface Course {
   description: string;
   isDraft: boolean;
   tags: Tag[];
-  imageUrl?: string;
+  picture?: string;
   author: Pick<User, 'id' | 'name' | 'login'>;
+  isPictureMinified: boolean;
+  imageHash: string | null;
 }
 
 export interface CourseTable {
@@ -24,8 +26,10 @@ export interface CourseTable {
   name: string;
   description: string;
   isDraft: boolean;
-  imageUrl?: string;
+  picture?: string;
   authorId: number;
+  isPictureMinified: boolean;
+  imageHash: string | null;
 }
 
 export interface CourseFtsTable {

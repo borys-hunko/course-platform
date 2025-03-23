@@ -1,43 +1,43 @@
 import { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
 import createHttpError, { HttpError } from 'http-errors';
-
-export const createErrorResponseHandler: ErrorRequestHandler = (
-  err: any,
-  _req: Request,
-  _res: Response,
-  next: NextFunction,
-) => {
-  let httpError: HttpError;
-  console.log('createErrorResponseHandler', err?.stack);
-
-  if (err instanceof HttpError) {
-    httpError = err;
-  } else if (err instanceof Error) {
-    httpError = createHttpError(500, 'Unexpected server error', {
-      details: err.message,
-      stack: err.stack,
-    });
-  } else {
-    httpError = createHttpError(500, 'Unexpected server error', {
-      stack: err?.stack,
-    });
-  }
-  Error.captureStackTrace(httpError);
-  console.log('created error from:', err);
-  next(httpError);
-};
+import { MulterError } from 'multer';
+import { badRequestError } from '../common/utils';
 
 export const errorHandler: ErrorRequestHandler = (
-  err: HttpError,
+  err: any,
   _req: Request,
   res: Response,
   _next: NextFunction,
 ) => {
-  console.error('handled error', err);
-  const { headers, ...errResponse } = err;
+  const httpError = transformError(err);
+  console.error('handled error', httpError);
+  const { headers, ...errResponse } = httpError;
   delete errResponse.stack;
   if (headers) {
     Object.keys(headers).forEach((key) => res.setHeader(key, headers[key]));
   }
-  res.status(err.statusCode).json(errResponse);
+  res.status(httpError.statusCode).json(errResponse);
 };
+
+function transformError(err: any) {
+  if (err instanceof HttpError) {
+    return err;
+  }
+
+  if (err instanceof MulterError) {
+    const error = badRequestError(err.message);
+    error.stack = err.stack;
+    return error;
+  }
+
+  if (err instanceof Error) {
+    return createHttpError(500, 'Unexpected server error', {
+      details: err.message,
+      stack: err.stack,
+    });
+  }
+
+  return createHttpError(500, 'Unexpected server error', {
+    stack: err?.stack,
+  });
+}

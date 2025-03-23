@@ -110,11 +110,13 @@ export class JwtService implements IJwtService {
   private async handleJwtError(error: unknown) {
     if (error instanceof JsonWebTokenError) {
       const errorMessage = capitalize(error.message);
-      return authenticationError(errorMessage, {
+      const authError = authenticationError(errorMessage, {
         authScheme: AUTH_SCHEME,
         resource: await this.getAppName(),
         error: 'Invalid jwt',
       });
+      authError.stack = error.stack;
+      return authError;
     }
     return error;
   }

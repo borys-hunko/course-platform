@@ -5,7 +5,6 @@ import {
   CourseTable,
   CreateCourseRequest,
   SearchCourseRequest,
-  UpdateCourseRequest,
 } from './types';
 import { inject } from 'inversify';
 import { CONTAINER_IDS } from '../common/consts';
@@ -21,6 +20,7 @@ import { ILogger } from '../common/logger';
 import { splitArrays } from '../common/utils';
 import { Knex } from 'knex';
 import { COURSE_FTS_TABLE_NAME } from './CourseFtsRepository';
+import { AtLeastOne } from '../common/types';
 
 export const COURSE_TABLE_NAME = 'course';
 const TAG_FILTER_CTE = 'tagFilter';
@@ -46,7 +46,7 @@ export class CourseRepository implements ICourseRepository {
 
   async update(
     id: number,
-    updateRequest: Omit<UpdateCourseRequest, 'tags'>,
+    updateRequest: Omit<AtLeastOne<CourseTable>, 'tags'>,
   ): Promise<CourseTable | undefined> {
     const updatedCourses = await this.datasource<CourseTable>(COURSE_TABLE_NAME)
       .update(updateRequest, '*')
@@ -58,10 +58,6 @@ export class CourseRepository implements ICourseRepository {
     const result: CourseRow[] = await this.getCourses()
       .modify(this.selectCourseFields)
       .where('c.id', id);
-
-    this.logger.debug(`Getting courses from ${id}`, {
-      result: JSON.stringify(result),
-    });
 
     if (result.length === 0) {
       return undefined;
@@ -140,8 +136,10 @@ export class CourseRepository implements ICourseRepository {
       'c.id as course_id',
       'c.name as course_name',
       'c.description as course_description',
-      'c.imageUrl as course_imageUrl',
+      'c.picture as course_picture',
       'c.isDraft as course_isDraft',
+      'c.imageHash as course_imageHash',
+      'c.isPictureMinified as course_isPictureMinified',
       't.id as tag_id',
       't.name as tag_name',
       'u.id as user_id',
@@ -253,29 +251,6 @@ export class CourseRepository implements ICourseRepository {
     q.orderBy(order);
   }
 
-  private findCourseIdsByTags = (
-    q: Knex.QueryBuilder,
-    page: number,
-    itemsPerPage: number,
-    tags: number[] = [],
-    withPagination: boolean = true,
-  ) => {
-    const nestedQuery = this.datasource<CourseToTagTable>(
-      COURSE_TO_TAG_TABLE_NAME,
-    ).distinct('courseId');
-
-    if (tags?.length) {
-      nestedQuery.whereIn('tagId', tags);
-    }
-    if (withPagination) {
-      nestedQuery
-        .limit(itemsPerPage)
-        .offset(this.getOffset(page, itemsPerPage));
-    }
-
-    q.whereIn('c.id', nestedQuery);
-  };
-
   private getOffset(page: number, itemsPerPage: number) {
     return (page - 1) * itemsPerPage;
   }
@@ -293,7 +268,9 @@ export class CourseRepository implements ICourseRepository {
       name: firstRow.course_name,
       description: firstRow.course_description,
       isDraft: firstRow.course_isDraft,
-      imageUrl: firstRow.course_imageUrl,
+      picture: firstRow.course_picture,
+      isPictureMinified: firstRow.course_isPictureMinified,
+      imageHash: firstRow.course_imageHash,
       author: {
         id: firstRow.user_id,
         name: firstRow.user_name,
@@ -308,7 +285,9 @@ interface CourseRow {
   course_id: number;
   course_name: string;
   course_description: string;
-  course_imageUrl: string | undefined;
+  course_picture: string | undefined;
+  course_isPictureMinified: boolean;
+  course_imageHash: string | null;
   course_isDraft: boolean;
   tag_id: number;
   tag_name: string;
