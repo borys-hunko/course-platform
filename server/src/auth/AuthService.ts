@@ -107,12 +107,11 @@ export class AuthService implements IAuthService {
       refreshToken,
       authenticationError('invalid token'),
     );
-    await this.passResetTokenService.deactivate(tokenId);
+    await this.jwtService.deactivateRefreshToken(tokenId);
   }
 
   async logoutOfAllDevices(): Promise<void> {
-    const userId = this.localStorage.getOrThrow('userId');
-    await this.passResetTokenService.deactivateAll(userId);
+    await this.jwtService.deactivateAllRefreshTokens();
   }
 
   private async sendPassResetEmail(email: string, token: string) {

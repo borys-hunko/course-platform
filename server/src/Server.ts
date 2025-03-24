@@ -58,6 +58,7 @@ export class Server {
     const error = notFoundError(`route ${req.originalUrl} does not exists`);
     await errorHandler(error, req, res, next);
   }
+
   private setUpRoutes() {
     this.featureRouters.forEach((feature) =>
       this.router.use(feature.getRouterPath(), feature.getRouter()),
@@ -67,9 +68,9 @@ export class Server {
   private async checkDb() {
     try {
       await this.datasource.raw('select 1 + 1 as results');
-      console.log('database is runnning');
+      console.log('database is running');
     } catch (e) {
-      console.error('error occured', e);
+      console.error('error occurred', e);
     }
   }
 }

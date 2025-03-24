@@ -6,7 +6,7 @@ export interface IRefreshTokenRepository
   create(
     token: Omit<RefreshTokenTable, 'id' | 'isActive' | 'tokenId'>,
   ): Promise<RefreshTokenTable>;
-  deativateAllForUser(userId: number): Promise<boolean>;
+  deactivateAllForUser(userId: number): Promise<boolean>;
   deactivate(tokenId: string): Promise<boolean>;
   get(tokenId: string): Promise<RefreshTokenTable | undefined>;
 }

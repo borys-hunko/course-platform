@@ -19,6 +19,7 @@ import {
   hashString,
   parseToken,
 } from '../../common/utils';
+import { ILocalStorage } from '../../common/localStorage';
 
 const REFRESH_TOKEN_ERR = 'Invalid refresh token';
 const JWT_SECRET = 'JWT_SECRET';
@@ -32,6 +33,7 @@ export class JwtService implements IJwtService {
     private refreshTokenRepository: IRefreshTokenRepository,
     @inject(CONTAINER_IDS.CONFIG_SERVICE) private configService: IConfigService,
     @inject(CONTAINER_IDS.LOGGER) private logger: ILogger,
+    @inject(CONTAINER_IDS.LOCAL_STORAGE) private localStorage: ILocalStorage,
   ) {}
 
   createTransactionalInstance(tsx: Transaction): JwtService {
@@ -39,6 +41,7 @@ export class JwtService implements IJwtService {
       this.refreshTokenRepository.createTransactionalInstance(tsx),
       this.configService,
       this.logger,
+      this.localStorage,
     );
   }
 
@@ -86,14 +89,22 @@ export class JwtService implements IJwtService {
     return this.getTokens(checkedRefreshToken.userId);
   }
 
+  async deactivateRefreshToken(refreshTokenId: string): Promise<void> {
+    await this.refreshTokenRepository.deactivate(refreshTokenId);
+  }
+
+  async deactivateAllRefreshTokens(): Promise<void> {
+    const userId = this.localStorage.getOrThrow('userId');
+    await this.refreshTokenRepository.deactivateAllForUser(userId);
+  }
+
   private async createJwt(userId: number) {
     const secret = await this.getSecret();
 
-    const jwtToken = jwt.sign({ id: userId }, secret, {
+    return jwt.sign({ id: userId }, secret, {
       algorithm: 'HS512',
       expiresIn: `${JWT_LIFETIME}h`,
     });
-    return jwtToken;
   }
 
   private async verifyJwt(token: string) {

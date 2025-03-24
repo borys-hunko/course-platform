@@ -21,7 +21,7 @@ export class RefreshTokenRepository implements IRefreshTokenRepository {
     return createdToken[0];
   }
 
-  async deativateAllForUser(userId: number): Promise<boolean> {
+  async deactivateAllForUser(userId: number): Promise<boolean> {
     const updatedRows = await this.datasource<RefreshTokenTable>('refreshToken')
       .update({
         isActive: false,
