@@ -138,7 +138,7 @@ export class CourseRepository implements ICourseRepository {
       'c.description as course_description',
       'c.picture as course_picture',
       'c.isDraft as course_isDraft',
-      'c.imageHash as course_imageHash',
+      'c.pictureDataUrl as course_pictureDataUrl',
       'c.isPictureMinified as course_isPictureMinified',
       't.id as tag_id',
       't.name as tag_name',
@@ -270,7 +270,7 @@ export class CourseRepository implements ICourseRepository {
       isDraft: firstRow.course_isDraft,
       picture: firstRow.course_picture,
       isPictureMinified: firstRow.course_isPictureMinified,
-      imageHash: firstRow.course_imageHash,
+      pictureDataUrl: firstRow.course_pictureDataUrl,
       author: {
         id: firstRow.user_id,
         name: firstRow.user_name,
@@ -287,7 +287,7 @@ interface CourseRow {
   course_description: string;
   course_picture: string | undefined;
   course_isPictureMinified: boolean;
-  course_imageHash: string | null;
+  course_pictureDataUrl: string | null;
   course_isDraft: boolean;
   tag_id: number;
   tag_name: string;

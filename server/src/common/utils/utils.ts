@@ -1,6 +1,7 @@
 import { hash } from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { HttpError } from 'http-errors';
+import sharp from 'sharp';
 
 export const toBase64 = (str: string) => {
   return Buffer.from(str).toString('base64');
@@ -55,3 +56,12 @@ export const getTotalPagesCount = (
 export function isValidPage(count: number, itemsPerPage: number, page: number) {
   return count < itemsPerPage * (page - 1);
 }
+
+export const generateBlurredDataUrl = async (buffer: Buffer) => {
+  const resizedBuffer = await sharp(buffer)
+    .resize(5, 5)
+    .webp({ quality: 10 })
+    .toBuffer();
+
+  return `data:image/webp;base64,${resizedBuffer.toString('base64')}`;
+};

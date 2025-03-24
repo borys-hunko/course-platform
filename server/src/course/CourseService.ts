@@ -15,6 +15,7 @@ import {
 import { inject, injectable } from 'inversify';
 import {
   badRequestError,
+  generateBlurredDataUrl,
   getTotalPagesCount,
   isValidPage,
   notFoundError,
@@ -74,7 +75,7 @@ export class CourseService implements ICourseService {
       isDraft: createdCourse.isDraft,
       tags: createdTags,
       isPictureMinified: createdCourse.isPictureMinified,
-      imageHash: createdCourse.imageHash,
+      pictureDataUrl: createdCourse.pictureDataUrl,
       author: {
         id: userId,
         name: user.name,
@@ -160,10 +161,15 @@ export class CourseService implements ICourseService {
     }
 
     const createdFileName = await this.imageService.upload(file);
+    const pictureDataUrl = await generateBlurredDataUrl(file.buffer);
+    this.logger.debug('dataUrlLength', {
+      pictureDataUrl,
+      pictureDataUrlLength: pictureDataUrl.length,
+    });
     const updatedEntity = await this.courseRepository.update(courseId, {
       picture: createdFileName,
       isPictureMinified: false,
-      imageHash: null,
+      pictureDataUrl: pictureDataUrl,
     });
 
     if (!updatedEntity) {
@@ -174,7 +180,7 @@ export class CourseService implements ICourseService {
       ...course,
       picture: updatedEntity.picture,
       isPictureMinified: updatedEntity.isPictureMinified,
-      imageHash: updatedEntity.imageHash,
+      pictureDataUrl: updatedEntity.pictureDataUrl,
     };
   }
 

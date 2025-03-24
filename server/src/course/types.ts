@@ -15,10 +15,10 @@ export interface Course {
   description: string;
   isDraft: boolean;
   tags: Tag[];
-  picture?: string;
   author: Pick<User, 'id' | 'name' | 'login'>;
+  picture?: string;
   isPictureMinified: boolean;
-  imageHash: string | null;
+  pictureDataUrl: string | null;
 }
 
 export interface CourseTable {
@@ -26,10 +26,10 @@ export interface CourseTable {
   name: string;
   description: string;
   isDraft: boolean;
-  picture?: string;
   authorId: number;
+  picture?: string;
   isPictureMinified: boolean;
-  imageHash: string | null;
+  pictureDataUrl: string | null;
 }
 
 export interface CourseFtsTable {
