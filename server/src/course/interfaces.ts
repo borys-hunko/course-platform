@@ -1,5 +1,6 @@
 import {
   Course,
+  CourseResponse,
   CoursesPageResponse,
   CourseTable,
   CreateCourseRequest,
@@ -10,12 +11,21 @@ import { ITransactional } from '../common/transactionRunner';
 import { AtLeastOne, MulterFile } from '../common/types';
 
 export interface ICourseService extends ITransactional<ICourseService> {
-  create(createRequest: CreateCourseRequest): Promise<Course>;
-  update(id: number, updateRequest: UpdateCourseRequest): Promise<Course>;
-  getById(id: number): Promise<Course>;
+  create(createRequest: CreateCourseRequest): Promise<CourseResponse>;
+
+  update(
+    id: number,
+    updateRequest: UpdateCourseRequest,
+  ): Promise<CourseResponse>;
+
+  getById(id: number): Promise<CourseResponse>;
   getByIdShallow(id: number): Promise<Pick<CourseTable, 'id' | 'authorId'>>;
   search(getByTagReq: SearchCourseRequest): Promise<CoursesPageResponse>;
-  uploadCoursePicture(courseId: number, file: MulterFile): Promise<Course>;
+
+  uploadCoursePicture(
+    courseId: number,
+    file: MulterFile,
+  ): Promise<CourseResponse>;
 }
 
 export interface ICourseRepository extends ITransactional<ICourseRepository> {

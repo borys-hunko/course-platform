@@ -5,8 +5,8 @@ locals {
 
 resource "aws_cloudfront_distribution" "hunko_course_images_cdn" {
   origin {
-    domain_name = aws_s3_bucket.hunko_course_images.bucket_regional_domain_name
-    origin_id   = local.image_bucket_origin_id
+    domain_name              = aws_s3_bucket.hunko_course_images.bucket_regional_domain_name
+    origin_id                = local.image_bucket_origin_id
     origin_access_control_id = aws_cloudfront_origin_access_control.hunko_course_images_cdn_oac.id
   }
 

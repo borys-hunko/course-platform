@@ -13,6 +13,7 @@ import { randomUUID } from 'crypto';
 import { internalError, toBase64 } from '../utils';
 
 const BUCKET_NAME = 'hunko-course-images';
+const IMAGE_DIR = 'images';
 
 export class ImageService implements IImageService {
   private s3Client?: S3Client;
@@ -26,17 +27,17 @@ export class ImageService implements IImageService {
     this.s3Client = await this.s3ClientProvider();
   }
 
-  async upload(file: MulterFile): Promise<string> {
+  async upload(file: MulterFile, file_prefix: string): Promise<string> {
     if (!this.s3Client) {
       throw new Error('You should init service firstly');
     }
 
-    const name = this.generateFileName(file.mimetype);
+    const name = `${file_prefix}_${this.generateFileName(file.mimetype)}`;
 
     const putCommand = new PutObjectCommand({
       Body: file.buffer,
       Bucket: BUCKET_NAME,
-      Key: name,
+      Key: `${IMAGE_DIR}/${name}`,
       ContentType: file.mimetype,
     });
     await this.s3Client.send(putCommand);

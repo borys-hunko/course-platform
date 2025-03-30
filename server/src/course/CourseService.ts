@@ -6,6 +6,7 @@ import {
 } from './interfaces';
 import {
   Course,
+  CourseResponse,
   CoursesPageResponse,
   CourseTable,
   CreateCourseRequest,
@@ -27,6 +28,7 @@ import IUserService from '../user/IUserService';
 import { ILogger } from '../common/logger';
 import { MulterFile } from '../common/types';
 import { IImageService } from '../common/image';
+import IConfigService from '../common/config/IConfigService';
 
 @injectable()
 export class CourseService implements ICourseService {
@@ -44,9 +46,11 @@ export class CourseService implements ICourseService {
     @inject(CONTAINER_IDS.LOGGER) private readonly logger: ILogger,
     @inject(CONTAINER_IDS.IMAGE_SERVICE)
     private readonly imageService: IImageService,
+    @inject(CONTAINER_IDS.CONFIG_SERVICE)
+    private readonly configService: IConfigService,
   ) {}
 
-  async create(createRequest: CreateCourseRequest): Promise<Course> {
+  async create(createRequest: CreateCourseRequest): Promise<CourseResponse> {
     const existingCourse = await this.courseRepository.findByName(
       createRequest.name,
     );
@@ -68,7 +72,7 @@ export class CourseService implements ICourseService {
 
     const user = await this.userService.getMe();
 
-    return {
+    return this.courseToResponse({
       id: createdCourse.id,
       name: createdCourse.name,
       description: createdCourse.description,
@@ -81,13 +85,13 @@ export class CourseService implements ICourseService {
         name: user.name,
         login: user.login,
       },
-    };
+    });
   }
 
   async update(
     id: number,
     updateRequest: UpdateCourseRequest,
-  ): Promise<Course> {
+  ): Promise<CourseResponse> {
     const { tags, ...courseChanges } = updateRequest;
     if (Object.keys(courseChanges).length) {
       const updateResult = await this.courseRepository.update(
@@ -107,14 +111,10 @@ export class CourseService implements ICourseService {
     return this.getById(id);
   }
 
-  async getById(id: number): Promise<Course> {
-    const course = await this.courseRepository.getById(id);
+  async getById(id: number): Promise<CourseResponse> {
+    const course = await this.getCourseById(id);
 
-    if (!course) {
-      throw notFoundError('Course not found');
-    }
-
-    return course;
+    return this.courseToResponse(course);
   }
 
   async getByIdShallow(
@@ -140,7 +140,7 @@ export class CourseService implements ICourseService {
 
     const totalPagesCount = getTotalPagesCount(itemsPerPage, count);
     return {
-      items: found,
+      items: await this.coursesToResponse(found),
       itemsPerPage,
       page,
       totalPages: totalPagesCount,
@@ -150,17 +150,17 @@ export class CourseService implements ICourseService {
   async uploadCoursePicture(
     courseId: number,
     file: MulterFile,
-  ): Promise<Course> {
-    const course = await this.getById(courseId);
+  ): Promise<CourseResponse> {
+    const course = await this.getCourseById(courseId);
 
     if (course.picture) {
       await this.imageService.delete([
-        course.picture,
+        `images/${course.picture}`,
         `minified/${course.picture}`,
       ]);
     }
-
-    const createdFileName = await this.imageService.upload(file);
+    const prefix = `course_${courseId}`;
+    const createdFileName = await this.imageService.upload(file, prefix);
     const pictureDataUrl = await generateBlurredDataUrl(file.buffer);
     this.logger.debug('dataUrlLength', {
       pictureDataUrl,
@@ -176,12 +176,11 @@ export class CourseService implements ICourseService {
       throw new Error('Could upload image');
     }
 
-    return {
+    return await this.courseToResponse({
       ...course,
       picture: updatedEntity.picture,
-      isPictureMinified: updatedEntity.isPictureMinified,
-      pictureDataUrl: updatedEntity.pictureDataUrl,
-    };
+      pictureDataUrl: pictureDataUrl,
+    });
   }
 
   createTransactionalInstance(trx: Transaction): ICourseService {
@@ -193,7 +192,51 @@ export class CourseService implements ICourseService {
       this.localStorage,
       this.logger,
       this.imageService,
+      this.configService,
     );
+  }
+
+  private async getCourseById(id: number) {
+    const course = await this.courseRepository.getById(id);
+
+    if (!course) {
+      throw notFoundError('Course not found');
+    }
+    return course;
+  }
+
+  private async courseToResponse(course: Course): Promise<CourseResponse> {
+    const image_url = await this.configService.get('IMAGE_URL');
+    const { picture, pictureDataUrl, isPictureMinified, ...data } = course;
+    return {
+      ...data,
+      picture: {
+        pictureDataUrl,
+        url: picture ? `${image_url}/images/${picture}` : undefined,
+        minifiedUrl: isPictureMinified
+          ? `${image_url}/minified/${picture}`
+          : undefined,
+      },
+    };
+  }
+
+  private async coursesToResponse(
+    courses: Course[],
+  ): Promise<CourseResponse[]> {
+    const image_url = await this.configService.get('IMAGE_URL');
+    return courses.map((course) => {
+      const { picture, pictureDataUrl, isPictureMinified, ...data } = course;
+      return {
+        ...data,
+        picture: {
+          pictureDataUrl,
+          url: picture ? `${image_url}/images/${picture}` : undefined,
+          minifiedUrl: isPictureMinified
+            ? `${image_url}/minified/${picture}`
+            : undefined,
+        },
+      };
+    });
   }
 
   private checkIfUpdated(updateResult: CourseTable | undefined) {

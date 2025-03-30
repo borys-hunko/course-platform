@@ -21,6 +21,17 @@ export interface Course {
   pictureDataUrl: string | null;
 }
 
+export type CourseResponse = Omit<
+  Course,
+  'pictureDataUrl' | 'isPictureMinified' | 'picture'
+> & {
+  picture: {
+    url?: string;
+    minifiedUrl?: string;
+    pictureDataUrl?: string | null;
+  };
+};
+
 export interface CourseTable {
   id: number;
   name: string;
@@ -42,4 +53,4 @@ export type CreateCourseRequest = z.infer<typeof createCourseSchema>;
 export type UpdateCourseRequest = z.infer<typeof updateCourseSchema.body>;
 export type SearchCourseRequest = z.infer<typeof searchCoursesSchema>;
 export type GetCourseByIdRequest = z.infer<typeof getCourseByIdSchema>;
-export type CoursesPageResponse = Pagination<Course>;
+export type CoursesPageResponse = Pagination<CourseResponse>;

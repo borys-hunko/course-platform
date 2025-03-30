@@ -13,7 +13,7 @@ import {
   uploadPhotoSchema,
 } from './schemas';
 import {
-  Course,
+  CourseResponse,
   CoursesPageResponse,
   CreateCourseRequest,
   GetCourseByIdRequest,
@@ -87,20 +87,17 @@ export class CourseRouter implements FeatureRouter {
     return '/course';
   }
 
-  createCourse: RequestHandler<unknown, Course, CreateCourseRequest> = async (
-    req,
-    res,
-    next,
-  ) => {
-    const response = await this.transactionRunner.runInsideTransaction(
-      this.courseService,
-      (service) => service.create(req.body),
-    );
-    res.status(201).json(response);
-    next();
-  };
+  createCourse: RequestHandler<unknown, CourseResponse, CreateCourseRequest> =
+    async (req, res, next) => {
+      const response = await this.transactionRunner.runInsideTransaction(
+        this.courseService,
+        (service) => service.create(req.body),
+      );
+      res.status(201).json(response);
+      next();
+    };
 
-  getCourseById: RequestHandler<GetCourseByIdRequest, Course> = async (
+  getCourseById: RequestHandler<GetCourseByIdRequest, CourseResponse> = async (
     req,
     res,
     next,
@@ -128,15 +125,18 @@ export class CourseRouter implements FeatureRouter {
     next();
   };
 
-  updateCourse: RequestHandler<ParamsDictionary, Course, UpdateCourseRequest> =
-    async (req, res, next) => {
-      const courseId = Number(req.params.courseId);
-      const result = await this.courseService.update(courseId, req.body);
-      res.status(200).json(result);
-      next();
-    };
+  updateCourse: RequestHandler<
+    ParamsDictionary,
+    CourseResponse,
+    UpdateCourseRequest
+  > = async (req, res, next) => {
+    const courseId = Number(req.params.courseId);
+    const result = await this.courseService.update(courseId, req.body);
+    res.status(200).json(result);
+    next();
+  };
 
-  uploadCourseImage: RequestHandler<ParamsDictionary, Course> = async (
+  uploadCourseImage: RequestHandler<ParamsDictionary, CourseResponse> = async (
     req,
     res,
     next,
