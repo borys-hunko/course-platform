@@ -49,9 +49,9 @@ resource "aws_lambda_function" "compress_image_lambda" {
 
   environment {
     variables = {
-      REGION     = var.region
-      QUEUE_URL  = aws_sqs_queue.compress_success_image_notification_sqs_queue.url
-      NODE_ENV   = "production"
+       REGION    = var.region
+      QUEUE_URL = aws_sqs_queue.compress_success_image_notification_sqs_queue.url
+      NODE_ENV  = "production"
     }
   }
 }
@@ -73,6 +73,8 @@ resource "aws_iam_policy" "compress_image_lambda_policy" {
           "logs:PutLogEvents",
           "s3:GetObject",
           "s3:PutObject",
+          "s3:GetObjectTagging",
+          "s3:PutObjectTagging",
           "sqs:SendMessage",
         ]
         Effect = "Allow"
@@ -90,7 +92,7 @@ resource "aws_iam_policy" "compress_image_lambda_policy" {
 resource "aws_iam_policy_attachment" "compress_image_lambda_policy_attachment" {
   name       = "compress_image_lambda_policy_attachment"
   policy_arn = aws_iam_policy.compress_image_lambda_policy.arn
-  roles = [aws_iam_role.compress_image_lambda_role.name]
+  roles      = [aws_iam_role.compress_image_lambda_role.name]
 }
 
 resource "aws_lambda_permission" "compress_image_lambda_allow_bucket_notifications" {

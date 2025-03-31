@@ -11,6 +11,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 import { internalError, toBase64 } from '../utils';
+import { ILocalStorage } from '../localStorage';
 
 const BUCKET_NAME = 'hunko-course-images';
 const IMAGE_DIR = 'images';
@@ -21,6 +22,7 @@ export class ImageService implements IImageService {
   constructor(
     @inject(CONTAINER_IDS.S3_CLIENT_PROVIDER)
     private s3ClientProvider: () => Promise<S3Client>,
+    @inject(CONTAINER_IDS.LOCAL_STORAGE) private localStorage: ILocalStorage,
   ) {}
 
   async init(): Promise<void> {
@@ -39,6 +41,7 @@ export class ImageService implements IImageService {
       Bucket: BUCKET_NAME,
       Key: `${IMAGE_DIR}/${name}`,
       ContentType: file.mimetype,
+      Tagging: `correlationId=${this.localStorage.getOrThrow('correlationId')}`,
     });
     await this.s3Client.send(putCommand);
 

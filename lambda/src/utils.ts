@@ -1,4 +1,6 @@
 import sharp, { Sharp } from 'sharp';
+import { Tag } from '@aws-sdk/client-s3';
+import { randomUUID } from 'node:crypto';
 
 type Extensions = 'jpg' | 'jpeg' | 'png' | 'webp';
 
@@ -32,4 +34,9 @@ export const compressObject = async (
   const extension = getExtension(filename);
   const compressedImageBuffer = await compressImage(buffer, extension);
   return compressedImageBuffer;
+};
+
+export const getCorrelationId = (tags: Tag[] | undefined) => {
+  const correlationId = tags?.find((tag) => tag.Key == 'correlationId');
+  return correlationId?.Value || randomUUID();
 };
