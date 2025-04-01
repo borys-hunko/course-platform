@@ -5,4 +5,6 @@ export interface IJwtService extends ITransactional<IJwtService> {
   checkJwt(token: string): Promise<JwtPayload>;
   getTokens(id: number): Promise<TokensResponse>;
   refreshJwt(refreshToken: string): Promise<TokensResponse>;
+  deactivateRefreshToken(refreshToken: string): Promise<void>;
+  deactivateAllRefreshTokens(): Promise<void>;
 }

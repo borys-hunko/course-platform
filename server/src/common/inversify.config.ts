@@ -1,12 +1,6 @@
-import * as awsSES from '@aws-sdk/client-ses';
-import { defaultProvider } from '@aws-sdk/credential-provider-node';
 import { AsyncLocalStorage } from 'async_hooks';
 import express, { Express, Router } from 'express';
-import { Container, interfaces } from 'inversify';
-import { Liquid } from 'liquidjs';
-import { createTransport, Transporter } from 'nodemailer';
-import SESTransport from 'nodemailer/lib/ses-transport';
-import path from 'path';
+import { Container } from 'inversify';
 import { AuthRouter } from '../auth/AuthRouter';
 import { AuthService } from '../auth/AuthService';
 import { IAuthService } from '../auth/IAuthService';
@@ -23,14 +17,12 @@ import {
 import { IPassResetTokenRepository } from '../auth/passResetToken/IPassResetTokenRepository';
 import { PassResetTokenRepository } from '../auth/passResetToken/PassResetTokenRepository';
 import datasource, { Datasource } from '../datasource';
-import { JwtAuthenticationMiddleaware } from '../middleware';
-import { CorrelationIdMiddleware } from '../middleware/correlationIdMiddleware';
 import { IUserResitory } from '../user/IUserRepository';
 import IUserService from '../user/IUserService';
 import { UserRepository } from '../user/UserRepository';
 import { UserRouter } from '../user/UserRouter';
 import { UserService } from '../user/UserService';
-import ConfigServise from './config/ConfigService';
+import ConfigService from './config/ConfigService';
 import IConfigService from './config/IConfigService';
 import { CONTAINER_IDS } from './consts';
 import {
@@ -40,9 +32,15 @@ import {
 } from './localStorage';
 import { ILocalStorageLogger, ILogger, Logger } from './logger';
 import { LocalStorageLogger } from './logger/LocalStorageLogger';
-import { IMailService, MailService } from './mail';
+import { mailModule } from './mail';
 import { ITransactionRunner, TransactionRunner } from './transactionRunner';
-import { FeatureRouter, Middleware } from './types';
+import { FeatureRouter } from './types';
+import { courseModule } from '../course';
+import { middlewareModule } from '../middleware/module';
+import { imageModule } from './image/module';
+import { Server } from '../Server';
+import { SQSClient } from '@aws-sdk/client-sqs';
+import { defaultProvider } from '@aws-sdk/credential-provider-node';
 
 const container = new Container();
 
@@ -53,7 +51,7 @@ container
   .toConstantValue(datasource);
 container
   .bind<IConfigService>(CONTAINER_IDS.CONFIG_SERVICE)
-  .to(ConfigServise)
+  .to(ConfigService)
   .inSingletonScope();
 container
   .bind<Router>(CONTAINER_IDS.ROUTER)
@@ -76,52 +74,9 @@ container
   .bind<ILocalStorageLogger>(CONTAINER_IDS.LOCAL_STORAGE_LOGGER)
   .to(LocalStorageLogger)
   .inSingletonScope();
-
-// mail
-const createMailTransporter: interfaces.ProviderCreator<
-  Transporter<SESTransport.SentMessageInfo>
-> = (context: interfaces.Context) => {
-  return async () => {
-    const configService = context.container.get<IConfigService>(
-      CONTAINER_IDS.CONFIG_SERVICE,
-    );
-    const ses = new awsSES.SES({
-      region: await configService.get('AWS_REGION'),
-      credentials: defaultProvider(),
-      apiVersion: '2010-12-01',
-    });
-
-    // console.log('domainEmail', domainEmail);
-    return createTransport({
-      SES: { aws: awsSES, ses },
-    });
-  };
-};
 container
-  .bind<
-    Transporter<SESTransport.SentMessageInfo>
-  >(CONTAINER_IDS.MAIL_TRANSPORTER)
-  .toProvider<Transporter<SESTransport.SentMessageInfo>>(createMailTransporter);
-container.bind<Liquid>(CONTAINER_IDS.TEMPLATE_ENGINE).toConstantValue(
-  new Liquid({
-    root: path.resolve(__dirname, '../..', 'templates'),
-    extname: '.liquid',
-  }),
-);
-container
-  .bind<IMailService>(CONTAINER_IDS.MAIL_SERVICE)
-  .to(MailService)
-  .inSingletonScope();
-
-//middlewares
-container
-  .bind<Middleware>(CONTAINER_IDS.JWT_AUTH_MIDDLEWARE)
-  .to(JwtAuthenticationMiddleaware)
-  .inSingletonScope();
-container
-  .bind<Middleware>(CONTAINER_IDS.CORRELATION_ID_MIDDLEWARE)
-  .to(CorrelationIdMiddleware)
-  .inSingletonScope();
+  .bind<SQSClient>(CONTAINER_IDS.SQS_CLIENT)
+  .toConstantValue(new SQSClient({ credentials: defaultProvider() }));
 
 //user
 container
@@ -133,13 +88,13 @@ container
   .to(UserRepository)
   .inSingletonScope();
 container
-  .bind<FeatureRouter>(CONTAINER_IDS.APP_ROUTER)
+  .bind<FeatureRouter>(CONTAINER_IDS.FEATURE_ROUTER)
   .to(UserRouter)
   .inSingletonScope();
 
 //auth
 container
-  .bind<FeatureRouter>(CONTAINER_IDS.APP_ROUTER)
+  .bind<FeatureRouter>(CONTAINER_IDS.FEATURE_ROUTER)
   .to(AuthRouter)
   .inSingletonScope();
 container
@@ -159,5 +114,7 @@ container
   .to(JwtService)
   .inSingletonScope();
 container.bind<IAuthService>(CONTAINER_IDS.AUTH_SERVICE).to(AuthService);
+container.bind<Server>(CONTAINER_IDS.SERVER).to(Server);
+container.load(courseModule, middlewareModule, mailModule, imageModule);
 
 export default container;

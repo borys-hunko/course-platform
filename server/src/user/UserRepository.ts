@@ -1,12 +1,12 @@
 import { inject } from 'inversify';
 import { CONTAINER_IDS } from '../common/consts';
-import { Transaction } from '../common/transactionRunner/types';
+import { Transaction } from '../common/transactionRunner';
 import { Datasource } from '../datasource';
 import { UserResponse } from './dto';
 import { IUserResitory } from './IUserRepository';
 import { User, UserTable } from './types';
+import { USER_TABLE_NAME } from './consts';
 
-const TABLE_NAME = 'user';
 const USER_RESPONSE_PROPS = ['id', 'login', 'email', 'createTime', 'name'];
 
 export class UserRepository implements IUserResitory {
@@ -15,7 +15,7 @@ export class UserRepository implements IUserResitory {
   ) {}
 
   async get(id: number): Promise<UserResponse | undefined> {
-    const query = this.datasource<UserTable, UserResponse[]>(TABLE_NAME)
+    const query = this.datasource<UserTable, UserResponse[]>(USER_TABLE_NAME)
       .select(...USER_RESPONSE_PROPS)
       .where('id', id);
 
@@ -27,7 +27,7 @@ export class UserRepository implements IUserResitory {
     login: string,
     email: string,
   ): Promise<User | undefined> {
-    const query = this.datasource<UserTable>(TABLE_NAME)
+    const query = this.datasource<UserTable>(USER_TABLE_NAME)
       .select('*')
       .where('email', email)
       .orWhere('login', login)
@@ -41,7 +41,7 @@ export class UserRepository implements IUserResitory {
     id: number,
     user: Partial<Omit<User, 'id'>>,
   ): Promise<UserResponse | undefined> {
-    const res = await this.datasource<UserTable>(TABLE_NAME)
+    const res = await this.datasource<UserTable>(USER_TABLE_NAME)
       .update(user, USER_RESPONSE_PROPS)
       .where({ id });
 
@@ -49,7 +49,7 @@ export class UserRepository implements IUserResitory {
   }
 
   async create(user: Omit<User, 'createDate' | 'id'>): Promise<User> {
-    const result = await this.datasource<UserTable>(TABLE_NAME).insert(
+    const result = await this.datasource<UserTable>(USER_TABLE_NAME).insert(
       user,
       '*',
     );
@@ -57,7 +57,7 @@ export class UserRepository implements IUserResitory {
   }
 
   async getByEmail(email: string): Promise<User | undefined> {
-    return await this.datasource<UserTable>(TABLE_NAME)
+    return await this.datasource<UserTable>(USER_TABLE_NAME)
       .select(...USER_RESPONSE_PROPS)
       .where('email', email)
       .first();

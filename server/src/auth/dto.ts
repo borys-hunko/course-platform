@@ -2,6 +2,8 @@ import z from 'zod';
 import { TokensResponse } from './jwt';
 import {
   logInSchema,
+  logoutAllSchema,
+  logoutSchema,
   refreshTokenSchema,
   resetPasswordSchema,
   sendPassResetTokenSchema,
@@ -15,5 +17,7 @@ export type SendForgotPasswordTokenRequest = z.infer<
   typeof sendPassResetTokenSchema
 >;
 export type ResetPasswordRequest = z.infer<typeof resetPasswordSchema>;
+export type LogoutRequest = z.infer<typeof logoutSchema>;
+export type LogoutAllRequest = z.infer<typeof logoutAllSchema>;
 
 export type LogInResponse = TokensResponse;

@@ -28,3 +28,12 @@ export const resetPasswordSchema = z.object({
   newPassword: z.string().regex(pwdRegex),
   resetToken: z.string(),
 });
+
+export const logoutAllSchema = z.object({
+  accessToken: z.string(),
+});
+
+export const logoutSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+});

@@ -12,7 +12,7 @@ export class MailService implements IMailService {
   transporter: Transporter<SESTransport.SentMessageInfo> | null = null;
 
   constructor(
-    @inject(CONTAINER_IDS.MAIL_TRANSPORTER)
+    @inject(CONTAINER_IDS.MAIL_TRANSPORTER_PROVIDER)
     private transporterProvider: () => Promise<
       Transporter<SESTransport.SentMessageInfo>
     >,
@@ -26,7 +26,7 @@ export class MailService implements IMailService {
   }
 
   async sendEmail({
-    temaplteVars,
+    templateVars,
     template,
     receiverEmail,
     subject,
@@ -39,7 +39,7 @@ export class MailService implements IMailService {
     this.logger.debug('sendEmail-from', { domainEmail });
     const res = await this.transporter.sendMail({
       to: receiverEmail,
-      html: await this.engine.renderFile(template, temaplteVars),
+      html: await this.engine.renderFile(template, templateVars),
       subject,
       from: domainEmail,
     });

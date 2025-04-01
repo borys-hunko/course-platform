@@ -22,5 +22,5 @@ export interface RefreshTokenTable {
 }
 
 export interface JwtPayload {
-  id: number;
+  id: string;
 }

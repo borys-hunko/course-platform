@@ -1,4 +1,5 @@
 import { compare } from 'bcrypt';
+import { HttpError } from 'http-errors';
 import { inject, injectable } from 'inversify';
 import IConfigService from '../common/config/IConfigService';
 import { CONTAINER_IDS } from '../common/consts';
@@ -6,8 +7,8 @@ import { ILocalStorage } from '../common/localStorage';
 import { ILogger } from '../common/logger';
 import { IMailService } from '../common/mail';
 import { Transaction } from '../common/transactionRunner';
-import { hashString } from '../common/utils';
-import { authenticationError } from '../common/utils/error';
+import { hashString, parseToken } from '../common/utils';
+import { authenticationError } from '../common/utils';
 import IUserService from '../user/IUserService';
 import {
   LogInRequest,
@@ -45,9 +46,16 @@ export class AuthService implements IAuthService {
     );
   }
 
-  async authenticateJwt(token: string): Promise<void> {
-    const payload = await this.jwtService.checkJwt(token);
-    this.localStorage.set('userId', payload.id);
+  async authenticateJwt(token: string): Promise<void | HttpError> {
+    try {
+      const payload = await this.jwtService.checkJwt(token);
+      this.localStorage.set('userId', Number(payload.id));
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return error;
+      }
+      throw error;
+    }
   }
 
   refreshJwt(refreshToken: string): Promise<LogInResponse> {
@@ -82,7 +90,7 @@ export class AuthService implements IAuthService {
 
     const hashedPassword = await hashString(newPassword);
 
-    await this.userService.update(validationResult.usetId, {
+    await this.userService.update(validationResult.userId, {
       password: hashedPassword,
     });
   }
@@ -94,6 +102,18 @@ export class AuthService implements IAuthService {
     await this.sendPassResetEmail(email, token);
   }
 
+  async logout(refreshToken: string): Promise<void> {
+    const { tokenId } = parseToken(
+      refreshToken,
+      authenticationError('invalid token'),
+    );
+    await this.jwtService.deactivateRefreshToken(tokenId);
+  }
+
+  async logoutOfAllDevices(): Promise<void> {
+    await this.jwtService.deactivateAllRefreshTokens();
+  }
+
   private async sendPassResetEmail(email: string, token: string) {
     const resetLink = await this.createResetLink(token);
     this.logger.debug('sendPassResetEmail', { email });
@@ -101,7 +121,7 @@ export class AuthService implements IAuthService {
       receiverEmail: email,
       template: 'forgotPassword',
       subject: 'Password reset',
-      temaplteVars: {
+      templateVars: {
         resetLink,
       },
     });

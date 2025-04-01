@@ -1,14 +1,13 @@
-import { RequestHandler, Router } from 'express';
+import { RequestHandler, Router, Response } from 'express';
 import createHttpError from 'http-errors';
 import { inject, injectable } from 'inversify';
-import { CONTAINER_IDS } from '../common/consts';
+import { CONTAINER_IDS, COOKIES } from '../common/consts';
 import { ILogger } from '../common/logger';
 import { ITransactionRunner } from '../common/transactionRunner';
-import { FeatureRouter } from '../common/types';
-import { schemaValidator } from '../middleware/validationMiddleware';
+import { FeatureRouter, Middleware } from '../common/types';
+import { schemaValidator } from '../middleware';
 import {
   LogInRequest,
-  LogInResponse,
   RefreshTokenRequest,
   ResetPasswordRequest,
   SendForgotPasswordTokenRequest,
@@ -17,11 +16,14 @@ import {
 import { IAuthService } from './IAuthService';
 import {
   logInSchema,
+  logoutAllSchema,
+  logoutSchema,
   refreshTokenSchema,
   resetPasswordSchema,
   sendPassResetTokenSchema,
   signUpSchema,
 } from './schemas';
+import { setAuthCookies } from './utils';
 
 @injectable()
 export class AuthRouter implements FeatureRouter {
@@ -29,8 +31,10 @@ export class AuthRouter implements FeatureRouter {
     @inject(CONTAINER_IDS.ROUTER) private router: Router,
     @inject(CONTAINER_IDS.AUTH_SERVICE) private authService: IAuthService,
     @inject(CONTAINER_IDS.TRANSACTION_RUNNER)
-    private transactionRunnner: ITransactionRunner<IAuthService>,
+    private transactionRunner: ITransactionRunner<IAuthService>,
     @inject(CONTAINER_IDS.LOGGER) private logger: ILogger,
+    @inject(CONTAINER_IDS.JWT_AUTH_MIDDLEWARE)
+    private jwtAuthMiddleware: Middleware,
   ) {}
 
   getRouter(): Router {
@@ -59,6 +63,18 @@ export class AuthRouter implements FeatureRouter {
         '/reset-password',
         schemaValidator({ body: resetPasswordSchema }),
         this.resetPassword,
+      )
+      .get(
+        '/logout',
+        schemaValidator({ cookies: logoutSchema }),
+        this.jwtAuthMiddleware.use,
+        this.logout,
+      )
+      .get(
+        '/logout-all',
+        schemaValidator({ cookies: logoutAllSchema }),
+        this.jwtAuthMiddleware.use,
+        this.logoutAll,
       );
     return this.router;
   }
@@ -67,37 +83,41 @@ export class AuthRouter implements FeatureRouter {
     return '/auth';
   }
 
-  loginRequestHandler: RequestHandler<any, LogInResponse, LogInRequest> =
-    async (req, res, next) => {
-      const response = await this.authService.login(req.body);
-      res.status(200).send(response);
-      next();
-    };
-
-  signUpRequestHandler: RequestHandler<any, LogInResponse, SignUpRequest> =
-    async (req, res, next) => {
-      const response = await this.transactionRunnner.runInsideTransaction(
-        this.authService,
-        (service) => service.signUp(req.body),
-      );
-
-      res.status(201).send(response);
-      next();
-    };
-
-  refreshTokenRequestHandler: RequestHandler<
-    any,
-    LogInResponse,
-    RefreshTokenRequest
-  > = async (req, res, next) => {
-    const response = await this.transactionRunnner.runInsideTransaction(
-      this.authService,
-      (service) => service.refreshJwt(req.body.refreshToken),
-    );
-
-    res.status(200).send(response);
+  loginRequestHandler: RequestHandler<any, void, LogInRequest> = async (
+    req,
+    res,
+    next,
+  ) => {
+    const response = await this.authService.login(req.body);
+    setAuthCookies(res, response);
+    res.status(200).send();
     next();
   };
+
+  signUpRequestHandler: RequestHandler<any, void, SignUpRequest> = async (
+    req,
+    res,
+    next,
+  ) => {
+    const response = await this.transactionRunner.runInsideTransaction(
+      this.authService,
+      (service) => service.signUp(req.body),
+    );
+    setAuthCookies(res, response);
+    res.status(201).send();
+    next();
+  };
+
+  refreshTokenRequestHandler: RequestHandler<any, void, RefreshTokenRequest> =
+    async (req, res, next) => {
+      const response = await this.transactionRunner.runInsideTransaction(
+        this.authService,
+        (service) => service.refreshJwt(req.body.refreshToken),
+      );
+      setAuthCookies(res, response);
+      res.status(200).send();
+      next();
+    };
 
   sendResetPasswordLink: RequestHandler<
     any,
@@ -124,11 +144,30 @@ export class AuthRouter implements FeatureRouter {
     res,
     next,
   ) => {
-    await this.transactionRunnner.runInsideTransaction(
+    await this.transactionRunner.runInsideTransaction(
       this.authService,
       (service) => service.resetPassword(req.body),
     );
     res.status(200).send();
     next();
+  };
+
+  logout: RequestHandler = async (req, res, next) => {
+    await this.authService.logout(req.cookies[COOKIES.REFRESH_TOKEN]);
+    this.clearCookies(res);
+    res.status(200).send();
+    next();
+  };
+
+  logoutAll: RequestHandler = async (_, res, next) => {
+    await this.authService.logoutOfAllDevices();
+    this.clearCookies(res);
+    res.status(200).send();
+    next();
+  };
+
+  private clearCookies = (res: Response) => {
+    res.clearCookie(COOKIES.REFRESH_TOKEN);
+    res.clearCookie(COOKIES.ACCESS_TOKEN);
   };
 }

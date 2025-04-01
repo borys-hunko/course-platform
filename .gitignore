@@ -5,4 +5,7 @@ volumes
 */build
 */.env
 */.next
-**/.terraform*
+**/.terraform
+.idea
+.gitignore
+*.zip

@@ -4,6 +4,8 @@ import { Transaction } from '../../common/transactionRunner';
 import { Datasource } from '../../datasource';
 import { IPassResetTokenRepository } from './IPassResetTokenRepository';
 import { PassResetTokenTable } from './types';
+import { util } from 'zod';
+import Omit = util.Omit;
 
 const TABLE_NAME = 'passResetToken';
 @injectable()
@@ -11,6 +13,13 @@ export class PassResetTokenRepository implements IPassResetTokenRepository {
   constructor(
     @inject(CONTAINER_IDS.DATA_SOURCE) private datasource: Datasource,
   ) {}
+
+  async deactivateAll(userId: number): Promise<boolean> {
+    const res = await this.datasource<PassResetTokenTable>(TABLE_NAME)
+      .update('isUsed', true)
+      .where('userId', userId);
+    return res !== 0;
+  }
 
   async create(
     token: Omit<PassResetTokenTable, 'id' | 'isUsed' | 'tokenId'>,

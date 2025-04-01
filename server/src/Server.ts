@@ -1,22 +1,20 @@
 import { json, urlencoded } from 'body-parser';
-import { Express, Router } from 'express';
+import cookieParser from 'cookie-parser';
+import { Express, NextFunction, Request, Response, Router } from 'express';
 import { inject, injectable, multiInject } from 'inversify';
 import IConfigService from './common/config/IConfigService';
 import { CONTAINER_IDS } from './common/consts';
 import { ILocalStorage } from './common/localStorage';
-import { IMailService } from './common/mail';
 import { FeatureRouter, Middleware } from './common/types';
+import { notFoundError } from './common/utils';
 import { Datasource } from './datasource';
-import { localStorageMiddleware } from './middleware';
-import {
-  createErrorResponseHandler,
-  errorHandler,
-} from './middleware/errorHandlerMiddleware';
+import { errorHandler, localStorageMiddleware } from './middleware';
+import { IQueueConsumer } from './common/queueConsumer';
 
 @injectable()
 export class Server {
   constructor(
-    @multiInject(CONTAINER_IDS.APP_ROUTER)
+    @multiInject(CONTAINER_IDS.FEATURE_ROUTER)
     private featureRouters: FeatureRouter[],
     @inject(CONTAINER_IDS.ROUTER) private router: Router,
     @inject(CONTAINER_IDS.APP) private app: Express,
@@ -26,11 +24,13 @@ export class Server {
     private correlationIdMiddleware: Middleware,
     @inject(CONTAINER_IDS.LOCAL_STORAGE)
     private localStorage: ILocalStorage,
-    @inject(CONTAINER_IDS.MAIL_SERVICE) private mailService: IMailService,
+    @multiInject(CONTAINER_IDS.QUEUE_CONSUMER)
+    private queueConsumers: IQueueConsumer[],
   ) {}
 
   async startServer() {
     await this.setUpServer();
+    // await this.startQueues();
 
     const port = await this.configService.get('PORT');
 
@@ -46,11 +46,21 @@ export class Server {
     this.app.use(localStorageMiddleware(this.localStorage));
     this.app.use(json());
     this.app.use(urlencoded({ extended: true }));
+    this.app.use(cookieParser());
     this.app.use(this.correlationIdMiddleware.use);
-    await this.initServices();
     this.app.use(this.router);
-    this.app.use(createErrorResponseHandler);
     this.app.use(errorHandler);
+    this.app.use(this.handle404);
+  }
+
+  private async handle404(
+    _error: unknown,
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    const error = notFoundError(`route ${req.originalUrl} does not exists`);
+    await errorHandler(error, req, res, next);
   }
 
   private setUpRoutes() {
@@ -62,13 +72,15 @@ export class Server {
   private async checkDb() {
     try {
       await this.datasource.raw('select 1 + 1 as results');
-      console.log('database is runnning');
+      console.log('database is running');
     } catch (e) {
-      console.error('error occured', e);
+      console.error('error occurred', e);
     }
   }
 
-  private async initServices() {
-    await this.mailService.init();
+  private async startQueues() {
+    const starts = this.queueConsumers.map((consumer) => consumer.start());
+    await Promise.all(starts);
+    console.log('queues started');
   }
 }
