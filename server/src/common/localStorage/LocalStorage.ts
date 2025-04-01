@@ -50,8 +50,6 @@ export class LocalStorage implements ILocalStorage {
   }
 
   init(callback: () => void): void {
-    this.storage.run({}, () => {
-      callback();
-    });
+    this.storage.run({}, callback);
   }
 }

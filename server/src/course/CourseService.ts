@@ -183,6 +183,18 @@ export class CourseService implements ICourseService {
     });
   }
 
+  async confirmImageCompression(filename: string): Promise<void> {
+    const id = this.getUserIdFromFilename(filename);
+
+    const updateResult = await this.courseRepository.update(id, {
+      isPictureMinified: true,
+    });
+
+    if (!updateResult) {
+      throw notFoundError('Image not found');
+    }
+  }
+
   createTransactionalInstance(trx: Transaction): ICourseService {
     return new CourseService(
       this.courseRepository.createTransactionalInstance(trx),
@@ -243,5 +255,14 @@ export class CourseService implements ICourseService {
     if (!updateResult) {
       throw notFoundError('Course not found');
     }
+  }
+
+  private getUserIdFromFilename(filename: string): number {
+    const id: string = filename.split('_')[1];
+    const parsedId = Number(id);
+    if (!parsedId) {
+      throw badRequestError('Invalid filename. Filename has no userId');
+    }
+    return parsedId;
   }
 }

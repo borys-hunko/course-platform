@@ -76,7 +76,7 @@ export class CourseRouter implements FeatureRouter {
         multipartFileUpload({
           filesNumber: 1,
           fieldName: 'course_picture',
-          allowedTypes: ['png', 'jpeg', 'jpg'],
+          allowedTypes: ['png', 'jpeg', 'jpg', 'webp'],
         }),
         this.uploadCourseImage,
       );

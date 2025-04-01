@@ -39,6 +39,8 @@ import { courseModule } from '../course';
 import { middlewareModule } from '../middleware/module';
 import { imageModule } from './image/module';
 import { Server } from '../Server';
+import { SQSClient } from '@aws-sdk/client-sqs';
+import { defaultProvider } from '@aws-sdk/credential-provider-node';
 
 const container = new Container();
 
@@ -72,6 +74,9 @@ container
   .bind<ILocalStorageLogger>(CONTAINER_IDS.LOCAL_STORAGE_LOGGER)
   .to(LocalStorageLogger)
   .inSingletonScope();
+container
+  .bind<SQSClient>(CONTAINER_IDS.SQS_CLIENT)
+  .toConstantValue(new SQSClient({ credentials: defaultProvider() }));
 
 //user
 container

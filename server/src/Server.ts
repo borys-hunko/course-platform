@@ -9,6 +9,7 @@ import { FeatureRouter, Middleware } from './common/types';
 import { notFoundError } from './common/utils';
 import { Datasource } from './datasource';
 import { errorHandler, localStorageMiddleware } from './middleware';
+import { IQueueConsumer } from './common/queueConsumer';
 
 @injectable()
 export class Server {
@@ -23,10 +24,13 @@ export class Server {
     private correlationIdMiddleware: Middleware,
     @inject(CONTAINER_IDS.LOCAL_STORAGE)
     private localStorage: ILocalStorage,
+    @multiInject(CONTAINER_IDS.QUEUE_CONSUMER)
+    private queueConsumers: IQueueConsumer[],
   ) {}
 
   async startServer() {
     await this.setUpServer();
+    // await this.startQueues();
 
     const port = await this.configService.get('PORT');
 
@@ -72,5 +76,11 @@ export class Server {
     } catch (e) {
       console.error('error occurred', e);
     }
+  }
+
+  private async startQueues() {
+    const starts = this.queueConsumers.map((consumer) => consumer.start());
+    await Promise.all(starts);
+    console.log('queues started');
   }
 }

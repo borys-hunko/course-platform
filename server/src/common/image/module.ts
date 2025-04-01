@@ -5,6 +5,8 @@ import { defaultProvider } from '@aws-sdk/credential-provider-node';
 import IConfigService from '../config/IConfigService';
 import { IImageService } from './interfaces';
 import { ImageService } from './ImageService';
+import { IQueueConsumer } from '../queueConsumer';
+import { ImageCompressSuccessQueue } from './ImageCompressSuccessQueue';
 
 const s3ClientProviderCreator: interfaces.ProviderCreator<S3Client> = (
   context: interfaces.Context,
@@ -29,4 +31,7 @@ export const imageModule = new ContainerModule((bind) => {
       await service.init();
       return service;
     });
+  bind<IQueueConsumer>(CONTAINER_IDS.QUEUE_CONSUMER)
+    .to(ImageCompressSuccessQueue)
+    .inSingletonScope();
 });

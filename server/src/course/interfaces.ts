@@ -12,20 +12,18 @@ import { AtLeastOne, MulterFile } from '../common/types';
 
 export interface ICourseService extends ITransactional<ICourseService> {
   create(createRequest: CreateCourseRequest): Promise<CourseResponse>;
-
   update(
     id: number,
     updateRequest: UpdateCourseRequest,
   ): Promise<CourseResponse>;
-
   getById(id: number): Promise<CourseResponse>;
   getByIdShallow(id: number): Promise<Pick<CourseTable, 'id' | 'authorId'>>;
   search(getByTagReq: SearchCourseRequest): Promise<CoursesPageResponse>;
-
   uploadCoursePicture(
     courseId: number,
     file: MulterFile,
   ): Promise<CourseResponse>;
+  confirmImageCompression(filename: string): Promise<void>;
 }
 
 export interface ICourseRepository extends ITransactional<ICourseRepository> {
