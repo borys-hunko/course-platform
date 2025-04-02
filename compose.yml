@@ -1,5 +1,5 @@
 services:
-  app:
+  app: # server
     dns:
     - 127.0.0.11
     - 8.8.8.8
@@ -25,9 +25,12 @@ services:
             - node_modules
             - dist
             - volumes
-        - action: rebuild
-          path: package.json
-
+        - action: sync+restart
+          target: /app
+          path: ./server/package.json
+        - action: sync+restart
+          target: /app
+          path: ./server/.env
   db:
     image: postgres:17.2-alpine3.21
     restart: unless-stopped
@@ -41,6 +44,40 @@ services:
       - POSTGRES_DB=courses_side
     networks:
       - local
+
+  client:
+    dns:
+      - 127.0.0.11
+      - 8.8.8.8
+      - 1.1.1.1
+    build:
+      target: dev
+      context: ./client
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    depends_on:
+      - app
+    networks:
+      - local
+    env_file:
+      - ./client/.env
+    develop:
+      watch:
+        - action: sync
+          target: /client
+          path: ./client
+          ignore:
+            - node_modules
+            - .next
+            - volumes
+        - action: sync+restart
+          target: /client
+          path: ./client/package.json
+        - action: sync+restart
+          target: /client
+          path: ./client/.env
+
 
 networks:
   local:
