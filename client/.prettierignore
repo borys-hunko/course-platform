@@ -1,0 +1,7 @@
+# Ignore artifacts:
+dist
+coverage
+node_modules
+volumes/*
+.next
+.next-env.d.ts
