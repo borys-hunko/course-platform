@@ -191,7 +191,7 @@ export class CourseService implements ICourseService {
     });
 
     if (!updateResult) {
-      throw notFoundError('Image not found');
+      throw notFoundError('FlexibleImage not found');
     }
   }
 
