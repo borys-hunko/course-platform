@@ -1,5 +1,3 @@
-'use client';
-
 import { FlexibleImage } from '@/components/ui/common';
 import Link from 'next/link';
 import { SidebarMenuButton } from '@/components/ui/header/dropdownMenuBtn';
@@ -7,11 +5,7 @@ import { NavigationMenu } from '@/components/ui/header/navigationMenu';
 
 const HeaderLogo = () => {
   return (
-    <Link
-      onClick={() => console.log('click')}
-      href={''}
-      className='h-full max-md:justify-self-center'
-    >
+    <Link href={''} className='h-full max-md:justify-self-center'>
       <FlexibleImage
         priority
         src={'/logo.webp'}

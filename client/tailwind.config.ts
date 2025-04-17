@@ -40,6 +40,10 @@ export default {
           DEFAULT: 'var(--destructive)',
           foreground: 'var(--destructive-foreground)',
         },
+        footer: {
+          DEFAULT: 'var(--footer)',
+          foreground: 'var(--footer-foreground)',
+        },
         border: 'var(--border)',
         input: 'var(--input)',
         ring: 'var(--ring)',

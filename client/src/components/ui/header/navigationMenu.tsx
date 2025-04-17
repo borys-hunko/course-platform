@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { Button } from '@/components/ui/common';
+import { Button, Link } from '@/components/ui/common';
 import { useRouter } from 'next/navigation';
 
 export const NavigationMenu = () => {
@@ -11,7 +10,7 @@ export const NavigationMenu = () => {
       className='flex justify-between items-center gap-8
       max-md:h-full max-md:flex-col max-md:justify-between'
     >
-      <Link href={''} className={'order-2 font-medium hover:text-primary'}>
+      <Link href={''} className={'order-2'}>
         Courses
       </Link>{' '}
       {/*<Link href={''} className={'order-1 font-medium hover:text-primary'}>*/}
