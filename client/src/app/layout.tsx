@@ -35,10 +35,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SidebarProvider defaultOpen={false}>
+        <SidebarProvider className={'flex flex-col'} defaultOpen={false}>
           <SidebarMenu />
           <Header />
-          {children}
+          <main className={'flex-grow'}>{children}</main>
           <Footer />
         </SidebarProvider>
       </body>
